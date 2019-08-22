@@ -8,7 +8,7 @@
     "build": "webpack --mode production",
     "webpack": "webpack-dev-server --mode development --open",
     "watch:sass": "node-sass src/sass/main.scss css/style.css -w",
-    "start": "npm-run-all --parallel webpack watch:sass"
+    "start": "npm-run-all --parallel watch:sass webpack"
   },
   "author": "Mikey Nichols",
   "devDependencies": {
