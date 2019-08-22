@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
-    "start": "webpack-dev-server --mode development --open"
+    "webpack": "webpack-dev-server --mode development --open",
+    "watch:sass": "node-sass src/sass/main.scss css/style.css -w",
+    "start": "npm-run-all --parallel webpack watch:sass"
   },
   "author": "Mikey Nichols",
   "devDependencies": {
+    "autoprefixer": "^7.1.4",
     "concat": "^1.0.3",
     "node-sass": "^4.12.0",
+    "npm-run-all": "^4.1.1",
+    "postcss-cli": "^4.1.1",
     "@babel/core": "^7.3.4",
     "@babel/preset-env": "^7.3.4",
     "babel-loader": "^8.0.5",

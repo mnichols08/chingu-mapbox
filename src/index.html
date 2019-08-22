@@ -6,7 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Garrett County Map - Chingu Precourse Project</title>
     <link rel="stylesheet" href="./css/style.css">
-    <!-- <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.1/mapbox-gl.js'>-->
 </head>
 <body>
     <header>
@@ -22,6 +21,18 @@
     </header>
     <main>
         <div id="map"></div>
+        <div id='menu'>
+            <input id='streets-v11' type='radio' name='rtoggle' value='streets' checked='checked'>
+            <label for='streets'>streets</label>
+            <input id='light-v10' type='radio' name='rtoggle' value='light'>
+            <label for='light'>light</label>
+            <input id='dark-v10' type='radio' name='rtoggle' value='dark'>
+            <label for='dark'>dark</label>
+            <input id='outdoors-v11' type='radio' name='rtoggle' value='outdoors'>
+            <label for='outdoors'>outdoors</label>
+            <input id='satellite-v9' type='radio' name='rtoggle' value='satellite'>
+            <label for='satellite'>satellite</label>
+        </div>
     </main>
     <footer>
         Copyright &copy; 2019 Mikey Nichols.

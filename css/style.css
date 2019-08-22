@@ -303,3 +303,9 @@ body {
   top: 0;
   bottom: 0;
   width: 100%; }
+
+#menu {
+  position: absolute;
+  background: #fff;
+  padding: 10px;
+  font-family: 'Open Sans', sans-serif; }
