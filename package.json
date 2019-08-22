@@ -4,12 +4,18 @@
   "description": "Mapbox for Chingu Assignment",
   "main": "index.js",
   "scripts": {
+    "compile:sass": "node-sass src/sass/main.scss dist/css/style.css",
     "dev": "webpack --mode development",
-    "build": "webpack --mode production",
-    "start": "webpack-dev-server --mode development --open"
+    "build-wp": "webpack --mode production",
+    "build": "npm-run-all compile:sass build-wp",
+    "webpack": "webpack-dev-server --mode development --open",
+    "watch:sass": "node-sass src/sass/main.scss css/style.css -w",
+    "start": "npm-run-all --parallel watch:sass webpack"
   },
   "author": "Mikey Nichols",
   "devDependencies": {
+    "node-sass": "^4.12.0",
+    "npm-run-all": "^4.1.1",
     "@babel/core": "^7.3.4",
     "@babel/preset-env": "^7.3.4",
     "babel-loader": "^8.0.5",
