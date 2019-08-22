@@ -4,8 +4,12 @@
   "description": "Mapbox for Chingu Assignment",
   "main": "index.js",
   "scripts": {
+    "compile:sass": "node-sass src/sass/main.scss css/style.comp.css",
+    "concat:css": "concat -o css/style.concat.css css/style.comp.css",
+    "build:css": "npm-run-all compile:sass concat:css",
     "dev": "webpack --mode development",
-    "build": "webpack --mode production",
+    "webpack-build": "webpack --mode production",
+    "build": "npm-run-all build:css webpack-build",
     "webpack": "webpack-dev-server --mode development --open",
     "watch:sass": "node-sass src/sass/main.scss css/style.css -w",
     "start": "npm-run-all --parallel watch:sass webpack"
