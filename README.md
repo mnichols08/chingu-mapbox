@@ -22,9 +22,10 @@ Choose a tech stack
 13. [ ] Include tests cases using tools like Jest, Enzyme, etc.
 14. [ ] Handle any edge cases
 15. [ ] Implement service workers to improve performance by relying on cached data
-16. [x] Add a CONTRIBUTION file with some instructions on how/if to contribute to your project
-17. [ ] Use as FEW external packages and libraries as possible to reduce the number of dependencies
-18. [ ] Use Accessibility techniques (i.e. a11ly) to improve your site for users with impairments
+16. [ ] Implement service workers to improve performance by relying on cached data
+17. [x] Add a CONTRIBUTION file with some instructions on how/if to contribute to your project
+18. [ ] Use as FEW external packages and libraries as possible to reduce the number of dependencies
+19. [ ] Use Accessibility techniques (i.e. a11ly) to improve your site for users with impairments
 
 ## Getting Started
 
