@@ -3,7 +3,10 @@
   "version": "0.0.2",
   "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack",
+    "dev": "concurrently \"npm run watch\" \"npm start\" --kill-others-on-fail",
+    "start": "serve dist",
+    "watch": "webpack --watch"
   },
   "repository": {
     "type": "git",
