@@ -1,6 +1,6 @@
 # Chingu Solo Project - Tier 2 - Mapbox API
 
-![Tier2 Mapbox API](./assets/Tier2_mapbox_api.gif)
+![Tier2 Mapbox API](/assets/Tier2_mapbox_api.gif)
 
 ## Overview
 
