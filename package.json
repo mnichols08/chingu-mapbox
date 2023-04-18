@@ -19,5 +19,11 @@
   "bugs": {
     "url": "https://github.com/mnichols08/chingu-mapbox/issues"
   },
-  "homepage": "https://github.com/mnichols08/chingu-mapbox#readme"
+  "homepage": "https://github.com/mnichols08/chingu-mapbox#readme",
+  "devDependencies": {
+    "concurrently": "^8.0.1",
+    "serve": "^14.2.0",
+    "webpack": "^5.79.0",
+    "webpack-cli": "^5.0.1"
+  }
 }
