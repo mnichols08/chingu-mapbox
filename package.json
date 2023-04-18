@@ -1,6 +1,6 @@
 {
   "name": "chingu-mapbox",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
   "scripts": {
     "build": "webpack",
