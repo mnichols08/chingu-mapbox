@@ -1,9 +1,18 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.js',
-  output: {
-    filename: 'main.js',
-    path: path.resolve(__dirname, 'public'),
-  },
+    mode: "development",
+    entry: path.resolve(__dirname, './src/index.js'),
+    devtool: "source-map",
+    resolve: {
+        extensions: ['*', '.js', '.jsx']
+    },
+    output: {
+        path: path.resolve(__dirname, './public'),
+        filename: 'app.js',
+    },
+    devServer: {
+        contentBase: path.resolve(__dirname, './public'),
+        hot: true
+    },
 };
