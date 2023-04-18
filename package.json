@@ -1,0 +1,23 @@
+{
+  "name": "chingu-mapbox",
+  "version": "0.0.1",
+  "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mnichols08/chingu-mapbox.git"
+  },
+  "keywords": [
+    "educational",
+    "map",
+    "fun"
+  ],
+  "author": "Mikey Nichols",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mnichols08/chingu-mapbox/issues"
+  },
+  "homepage": "https://github.com/mnichols08/chingu-mapbox#readme"
+}
