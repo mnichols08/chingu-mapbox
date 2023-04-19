@@ -12,7 +12,7 @@ export const generateMap = (id) => {
 };
 const controller = () => {
   return {
-    renderMap,
+    generateMap,
   };
 };
 
