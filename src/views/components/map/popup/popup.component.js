@@ -1,14 +1,25 @@
 import mapboxgl from "mapbox-gl";
-import './popup.style.scss';
+import "./popup.style.scss";
 
 const renderPopups = (map) => {
-    map.on("click", "parks", (e) => {
+  map.on("click", "parks", (e) => {
     // Copy coordinates array.
     const title = e.features[0].properties["Park Name"];
     const coordinates = e.features[0].geometry.coordinates.slice();
     const description = e.features[0].properties.Description;
     const activities = e.features[0].properties.Activities;
-    const string = `<div class="mapbox__feature--popup"><div><h3><center>${title}</center></h3></div><div><strong>Description: </strong>${description}</div><div><strong>Popular activites include:</strong> ${activities}</div></div>`;
+    const string = `
+    <h3>
+      <center>${title}</center>
+    </h3>
+    </div>
+    <div>
+      <strong>Description: </strong>${description}
+    </div>
+    <div>
+      <strong>Popular activites include:</strong> ${activities}
+    </div>
+    `;
     // Ensure that if the map is zoomed out such that multiple
     // copies of the feature are visible, the popup appears
     // over the copy being pointed to.
@@ -27,7 +38,7 @@ const renderPopups = (map) => {
   // Change it back to a pointer when it leaves.
   map.on("mouseleave", "parks", () => {
     map.getCanvas().style.cursor = "";
-  })
+  });
   return map;
 };
 
