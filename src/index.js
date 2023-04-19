@@ -1,3 +1,1 @@
-import init from './views/init';
-
-document.body.onload = init;
+import controller from './controller';
