@@ -1,10 +1,11 @@
 import { fetchJson } from "../../../controller";
 import createEle from "../../../utils/createEle.util";
 import renderSearch from './search/search.component';
+import renderLocations from './locations/renderLocations.component';
 import './nav.style.scss';
 
-const renderNav = () => {
-  const navItems = fetchJson();
+const renderNav = (map) => {
+  const features = fetchJson();
   const nav = createEle(
     "nav",
     `
@@ -14,7 +15,7 @@ const renderNav = () => {
   createEle("h2", "Nearby Parks", nav);
   renderSearch(nav);
   const ul = createEle("ul", "", nav);
-  navItems.features.map((item) => createEle("li", item.properties["Park Name"], ul));
+  renderLocations(map, ul)
   return nav;
 };
 
