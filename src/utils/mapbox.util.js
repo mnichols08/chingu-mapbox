@@ -1,5 +1,9 @@
 import mapboxgl from "mapbox-gl";
 
+export const addMarker = marker => new mapboxgl.Marker().addTo(map);
+
+export const removeMarker = marker => marker.remove();
+
 export const flyToStore = (currentFeature, map) =>
   map.flyTo({
     center: currentFeature.geometry.coordinates,
