@@ -6,9 +6,12 @@ const renderSearch = (anchor, map) => {
   const input = createEle("input", ``, anchor);
   const ul = createEle("ul", "", anchor);
   input.placeholder = "search";
-  input.onkeyup = (e) => renderLocations(ul, map, e.target.value);
-  renderLocations(ul, map)
-  
+  input.onkeyup = (e) => {
+    const value = e.target.value.trim().toLowerCase();
+    renderLocations(ul, map, value);
+  };
+  renderLocations(ul, map);
+
   return input;
 };
 
