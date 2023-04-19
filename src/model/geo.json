@@ -18,18 +18,6 @@
       },
       {
         "type": "Feature",
-        "properties": {},
-        "geometry": {
-          "coordinates": [
-            -79.403331,
-            39.693897
-          ],
-          "type": "Point"
-        },
-        "id": "23a8f4244edec0e8209112261801c05f"
-      },
-      {
-        "type": "Feature",
         "properties": {
           "Park Name": "Deep Creek Lake State Park",
           "Description": "A beautiful place to spend the day. Includes a small aviary where you can view native birds while they are being rehabitated into the wild",
