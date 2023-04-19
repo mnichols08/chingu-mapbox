@@ -5,7 +5,7 @@ import './map.style.scss';
 
 const renderMap = (id) => {
   createEle("div", "", anchor, id);
-  return generateMap(id);
+  return generateMap(id, true);
 };
 
 export default renderMap;
