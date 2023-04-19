@@ -1,4 +1,4 @@
-import renderMap from "../components/map.component";
+import renderMap from "../components/map/map.component";
 
 const indexPage = () => {
     renderMap('map');
