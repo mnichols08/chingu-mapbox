@@ -1,6 +1,6 @@
 {
   "name": "chingu-mapbox",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
   "scripts": {
     "build": "webpack",
@@ -24,9 +24,19 @@
   },
   "homepage": "https://github.com/mnichols08/chingu-mapbox#readme",
   "devDependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/plugin-syntax-import-assertions": "^7.20.0",
+    "babel-loader": "^9.1.2",
     "concurrently": "^8.0.1",
+    "css-loader": "^6.7.3",
+    "node-sass": "^8.0.0",
+    "sass-loader": "^13.2.2",
     "serve": "^14.2.0",
+    "style-loader": "^3.3.2",
     "webpack": "^5.79.0",
     "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "mapbox-gl": "^2.14.1"
   }
 }
