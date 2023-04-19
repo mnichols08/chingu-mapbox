@@ -4,7 +4,7 @@ import createEle from "../../utils/createEle.util";
 
 const renderMap = (id) => {
   createEle("div", "", anchor, id);
-  return generateMap();
+  return generateMap(id);
 };
 
 export default renderMap;
