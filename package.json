@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/mnichols08/chingu-mapbox#readme",
   "devDependencies": {
+    "@babel/core": "^7.21.4",
     "babel-loader": "^9.1.2",
     "concurrently": "^8.0.1",
     "css-loader": "^6.7.3",
