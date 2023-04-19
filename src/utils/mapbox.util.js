@@ -1,6 +1,6 @@
 import mapboxgl from "mapbox-gl";
 
-export const addMarker = marker => new mapboxgl.Marker().addTo(map);
+export const addMarker = map => new mapboxgl.Marker().addTo(map);
 
 export const removeMarker = marker => marker.remove();
 
