@@ -13,7 +13,6 @@ const renderLocations = (anchor, map, search) => {
         })
     : data.features;
   anchor.innerHTML = ``; // clear the anchor
-  console.log(parks)
   parks.forEach((park, i) => (park.properties.id = i));
   for (const park of parks) {
     const location = createEle(
