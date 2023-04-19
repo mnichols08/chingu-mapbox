@@ -2,10 +2,19 @@ import { flyToStore, openPopup } from "../../../../utils/mapbox.util";
 import { fetchJson } from "../../../../controller";
 import createEle from "../../../../utils/createEle.util";
 
-const renderLocations = (map, anchor) => {
+const renderLocations = (anchor, map, search) => {
   const data = fetchJson();
-  data.features.forEach((park, i) => (park.properties.id = i));
-  const parks = data.features;
+  const parks = search
+    ? data.features
+        .filter((featProps) => {
+          const keys = Object.keys(featProps.properties);
+          const props = keys.map((key) => featProps.properties[key]);
+          return props.toString().toLowerCase().includes(search.toLowerCase());
+        })
+    : data.features;
+  anchor.innerHTML = ``; // clear the anchor
+  console.log(parks)
+  parks.forEach((park, i) => (park.properties.id = i));
   for (const park of parks) {
     const location = createEle(
       "div",
@@ -26,7 +35,7 @@ const renderLocations = (map, anchor) => {
       for (const feature of parks) {
         if (this.id === `link-${feature.properties.id}`) {
           flyToStore(feature, map);
-          openPopup(feature, map)
+          openPopup(feature, map);
         }
       }
     };
