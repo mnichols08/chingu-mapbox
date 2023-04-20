@@ -5,12 +5,11 @@ import createEle from "../../../../utils/createEle.util";
 const renderLocations = (anchor, map, search) => {
   const data = fetchJson();
   const parks = search
-    ? data.features
-        .filter((featProps) => {
-          const keys = Object.keys(featProps.properties);
-          const props = keys.map((key) => featProps.properties[key]);
-          return props.toString().toLowerCase().includes(search.toLowerCase());
-        })
+    ? data.features.filter((featProps) => {
+        const keys = Object.keys(featProps.properties);
+        const props = keys.map((key) => featProps.properties[key]);
+        return props.toString().toLowerCase().includes(search.toLowerCase());
+      })
     : data.features;
   anchor.innerHTML = ``; // clear the anchor
   parks.forEach((park, i) => (park.properties.id = i));
@@ -35,6 +34,7 @@ const renderLocations = (anchor, map, search) => {
         if (this.id === `link-${feature.properties.id}`) {
           flyToStore(feature, map);
           openPopup(feature, map);
+          console.log("tell mehow the efff this is possible?!");
         }
       }
     };
