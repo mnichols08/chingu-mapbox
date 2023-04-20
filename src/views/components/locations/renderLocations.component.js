@@ -1,6 +1,6 @@
-import { flyToStore, openPopup } from "../../../../utils/mapbox.util";
-import { fetchJson } from "../../../../controller";
-import createEle from "../../../../utils/createEle.util";
+import { flyToStore, openPopup } from "../../../utils/mapbox.util";
+import { fetchJson } from "../../../controller";
+import createEle from "../../../utils/createEle.util";
 
 const renderLocations = (anchor, map, search) => {
   const data = fetchJson();

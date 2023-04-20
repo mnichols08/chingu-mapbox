@@ -1,5 +1,5 @@
-import { fetchJson } from "../../../../controller";
-import { flyToStore, openPopup } from "../../../../utils/mapbox.util";
+import { fetchJson } from "../../../controller";
+import { flyToStore, openPopup } from "../../../utils/mapbox.util";
 import mapboxgl from "mapbox-gl";
 import "./park.style.scss";
 const renderParks = (map, feature) => {

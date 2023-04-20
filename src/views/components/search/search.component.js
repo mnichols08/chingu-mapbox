@@ -1,7 +1,7 @@
-import createEle from "../../../../utils/createEle.util";
-import { fetchJson } from "../../../../controller";
+import createEle from "../../../utils/createEle.util";
+import { fetchJson } from "../../../controller";
 import renderLocations from "../locations/renderLocations.component";
-import renderParks from "../../map/parks/park.component";
+import renderParks from "../parks/park.component";
 import "./search.style.scss";
 
 const renderSearch = (anchor, map) => {

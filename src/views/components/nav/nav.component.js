@@ -1,5 +1,5 @@
 import createEle from "../../../utils/createEle.util";
-import renderSearch from "./search/search.component";
+import renderSearch from "../search/search.component";
 import "./nav.style.scss";
 
 const renderNav = (map) => {

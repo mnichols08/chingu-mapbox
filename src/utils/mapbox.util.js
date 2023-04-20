@@ -1,5 +1,5 @@
 import mapboxgl from "mapbox-gl";
-import renderParks from "../views/components/map/parks/park.component";
+import renderParks from "../views/components/parks/park.component";
 
 export const flyToStore = (currentFeature, map) =>
   map.flyTo({

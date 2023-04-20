@@ -1,4 +1,4 @@
-import { flyToStore, openPopup } from "../../../../utils/mapbox.util";
+import { flyToStore, openPopup } from "../../../utils/mapbox.util";
 import "./popup.style.scss";
 
 const renderPopups = (map) => {
