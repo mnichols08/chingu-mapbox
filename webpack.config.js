@@ -25,11 +25,11 @@ module.exports = {
         extensions: ['*', '.js', '.jsx']
     },
     output: {
-        path: path.resolve(__dirname, './public'),
+        path: path.resolve(__dirname, './dist'),
         filename: 'app.js',
     },
     devServer: {
-        contentBase: path.resolve(__dirname, './public'),
+        contentBase: path.resolve(__dirname, './dist'),
         hot: true
     },
 };
