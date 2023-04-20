@@ -1,8 +1,5 @@
 import mapboxgl from "mapbox-gl";
-
-export const addMarker = map => new mapboxgl.Marker().addTo(map);
-
-export const removeMarker = marker => marker.remove();
+import renderParks from "../views/components/map/parks/park.component";
 
 export const flyToStore = (currentFeature, map) =>
   map.flyTo({
@@ -10,6 +7,7 @@ export const flyToStore = (currentFeature, map) =>
     zoom: 15,
   });
 export const openPopup = (currentFeature, map, e) => {
+  renderParks(map, currentFeature);
   const title = currentFeature.properties["Park Name"];
   const coordinates = currentFeature.geometry.coordinates.slice();
   const description = currentFeature.properties.Description;
