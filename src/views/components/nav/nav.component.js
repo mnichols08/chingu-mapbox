@@ -1,19 +1,16 @@
-import { fetchJson } from "../../../controller";
 import createEle from "../../../utils/createEle.util";
-const renderNav = () => {
-  const navItems = fetchJson();
-  console.log(navItems);
+import renderSearch from "./search/search.component";
+import "./nav.style.scss";
+
+const renderNav = (map) => {
   const nav = createEle(
     "nav",
     `
     `,
-    document.body,
-    "",
-    "side-bar"
+    document.body
   );
   createEle("h2", "Nearby Parks", nav);
-  const ul = createEle("ul", "", nav);
-  navItems.features.map((item) => createEle("li", item.properties["Park Name"], ul));
+  renderSearch(nav, map);
   return nav;
 };
 
