@@ -10,13 +10,14 @@ export const generateMap = (id, bounds) => {
       [-79.08637004392415, 39.722221540464716], // Northeast coordinates
     ];
   mapboxgl.accessToken =
-    "pk.eyJ1IjoibW5pY2hvbHMwOCIsImEiOiJjanptM2Z4YWkwNWZzM2JtdGxzemxmOG1wIn0.NpyABUQBYrXLFQE5_0VLuQ";
+    "pk.eyJ1IjoibW5peGRldiIsImEiOiJjbGdwcG90dWIxMmFlM2dtcmR2NW52cjA0In0.nvXjhxyKVg4zULCK9WxUJQ";
   const map = new mapboxgl.Map({
     container: id, // container ID
-    style: "mapbox://styles/mapbox/outdoors-v12", // style URL
+    style: "mapbox://styles/mnixdev/clgppxl1m00e301pa783p0txw", // style URL
     center: [-79.312, 39.505], // starting position [lng, lat]
-    zoom: 12, // starting zoom
+    zoom: 7, // starting zoom
     maxBounds: boundaries,
+    pitch: 30
   });
   return map;
 };
