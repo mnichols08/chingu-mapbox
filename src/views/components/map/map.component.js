@@ -9,7 +9,7 @@ import "./map.style.scss";
 const renderMap = (id) => {
   createEle("div", "", anchor, id);
   const map = generateMap(id, true);
-  renderParks(map);
+  renderParks(map).parks();
   renderPopups(map);
   return map;
 };

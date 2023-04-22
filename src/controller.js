@@ -13,7 +13,7 @@ export const generateMap = (id, bounds) => {
     "pk.eyJ1IjoibW5peGRldiIsImEiOiJjbGdwcG90dWIxMmFlM2dtcmR2NW52cjA0In0.nvXjhxyKVg4zULCK9WxUJQ";
   const map = new mapboxgl.Map({
     container: id, // container ID
-    style: "mapbox://styles/mnixdev/clgppxl1m00e301pa783p0txw", // style URL
+    style: "mapbox://styles/mnixdev/clgpq9kyh00ew01qtcuxzeypo", // style URL
     center: [-79.312, 39.505], // starting position [lng, lat]
     zoom: 7, // starting zoom
     maxBounds: boundaries,
@@ -22,7 +22,7 @@ export const generateMap = (id, bounds) => {
   return map;
 };
 
-export const fetchJson = () => geojson;
+export const fetchJson = () => geojson.features;
 
 const controller = () => {
   return {
