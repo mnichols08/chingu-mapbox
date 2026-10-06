@@ -1,3 +1,7 @@
 node_modules
+rust/target/
+rust/pkg/
+map-config.local.json
+dist/map-config.json
 public/app.*
 public/fc5c4e1a3f041328dbe9.png

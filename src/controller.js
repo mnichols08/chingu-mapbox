@@ -9,8 +9,9 @@ export const generateMap = (id, bounds) => {
       [-79.48696767001076, 39.202068911240104], // Southwest coordinates
       [-79.08637004392415, 39.722221540464716], // Northeast coordinates
     ];
-  mapboxgl.accessToken =
-    "pk.eyJ1IjoibW5pY2hvbHMwOCIsImEiOiJjanptM2Z4YWkwNWZzM2JtdGxzemxmOG1wIn0.NpyABUQBYrXLFQE5_0VLuQ";
+  if (!mapboxgl.accessToken || !mapboxgl.accessToken.startsWith("pk.")) {
+    throw new Error("Configure a public Mapbox token before creating the map.");
+  }
   const map = new mapboxgl.Map({
     container: id, // container ID
     style: "mapbox://styles/mapbox/outdoors-v12", // style URL

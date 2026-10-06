@@ -1,0 +1,31 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build adventure explorer",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Preview adventure explorer",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"node_modules\\serve\\build\\main.js",
+				"dist",
+				"-l",
+				"4173"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

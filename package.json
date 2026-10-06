@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
   "scripts": {
-    "build": "webpack",
+    "build": "npm run build:wasm && npm run typecheck && webpack --mode production",
+    "build:wasm": "wasm-pack build rust --target bundler --out-dir pkg",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:rust": "cargo test --manifest-path rust/Cargo.toml",
     "dev": "concurrently \"npm run watch\" \"npm start\" --kill-others-on-fail",
     "start": "serve dist",
-    "watch": "webpack --watch"
+    "watch": "npm run build:wasm && webpack --mode development --watch"
   },
   "repository": {
     "type": "git",
@@ -24,19 +28,27 @@
   },
   "homepage": "https://github.com/mnichols08/chingu-mapbox#readme",
   "devDependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/plugin-syntax-import-assertions": "^7.20.0",
-    "babel-loader": "^9.1.2",
-    "concurrently": "^8.0.1",
-    "css-loader": "^6.7.3",
-    "node-sass": "^8.0.0",
-    "sass-loader": "^13.2.2",
-    "serve": "^14.2.0",
-    "style-loader": "^3.3.2",
-    "webpack": "^5.79.0",
-    "webpack-cli": "^5.0.1"
+    "@types/geojson": "^7946.0.16",
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-syntax-import-assertions": "^7.29.7",
+    "babel-loader": "^10.1.1",
+    "concurrently": "^10.0.5",
+    "css-loader": "^7.1.5",
+    "sass": "^1.105.1",
+    "sass-loader": "^17.0.1",
+    "serve": "^14.2.6",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "webpack": "^5.111.1",
+    "webpack-cli": "^7.2.3"
   },
   "dependencies": {
-    "mapbox-gl": "^2.14.1"
+    "mapbox-gl": "^3.32.0"
+  },
+  "overrides": {
+    "compression": "^1.8.2",
+    "shell-quote": "^1.12.0"
   }
 }
