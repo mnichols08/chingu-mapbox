@@ -1,7 +1,5 @@
-// Static site files shared by the webpack build and the content-only build.
+// Static public files copied by Vite and the content-only build.
 const PUBLIC_ASSETS = [
-  "index.html",
-  "explore.html",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/icon-192.png",
@@ -14,7 +12,6 @@ const PUBLIC_ASSETS = [
   "images/deer-sky-valley.webp",
   "images/local-finds-background.webp",
   "images/install-stream.webp",
-  "site.css",
   "site.js",
 ];
 

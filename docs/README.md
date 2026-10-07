@@ -15,7 +15,7 @@ The browser app is written in **TypeScript** and uses Mapbox GL JS. **Rust** is
 compiled to WebAssembly for GPX calculations, which run in a Web Worker.
 Build scripts and some site behavior use **JavaScript**; page content is
 **HTML/CSS**, with guide articles authored in **Markdown** and YAML front
-matter. Webpack, Sass, Node.js, IndexedDB, and service workers support the
+matter. Vite, Sass, Node.js, IndexedDB, and service workers support the
 build, styling, local storage, and offline app shell.
 
 The explorer now includes a responsive, keyboard-accessible place browser,
@@ -27,7 +27,7 @@ accessibility, opening-hours, or live-condition information is assumed.
 The homepage leads with local trip guides and Garrett County's scenery. The
 interactive map lives at `/explore.html` and is linked from the site footer.
 Article source files live in `content/articles/` as Markdown with YAML front
-matter. The webpack production build emits each article's root-level `.html`
+matter. The Vite production build emits each article's root-level `.html`
 permalink, plus `sitemap.xml` and `robots.txt`, into `dist`. Keep article
 permalinks stable so search results and existing internal links do not break.
 Guide metadata such as descriptions, related articles, source lists, and
@@ -57,10 +57,12 @@ Requirements: a current Node.js LTS release with npm, Rust with Cargo, the
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack --locked
-npm install
-npm run build
-npm start
+npm ci
+npm run dev
 ```
+
+Open `http://localhost:3000`. For a production preview, run `npm run build`
+and then `npm start` to serve `dist` on port 3000.
 
 Before building, copy `map-config.example.json` to `map-config.local.json`
 and fill `mapboxToken` with a **public** Mapbox token (prefix `pk.`).
@@ -75,10 +77,14 @@ it is intentionally not committed or precached. Builds without a local config
 still work for place discovery and trail analysis, with a visible map setup
 message. Ignoring a file does not remove it from previously created commits.
 
-The production build compiles the Rust crate, type-checks TypeScript, and emits
-the web app into `dist`. VS Code also provides build and preview tasks; the
-preview task listens on port 4173. `npm run dev` builds WASM once and watches
-frontend changes. After changing Rust, run `npm run build:wasm` again.
+The production build compiles the Rust crate, type-checks TypeScript, and uses
+Vite to emit the web app into `dist`. VS Code also provides build and preview
+tasks; the preview task listens on port 4173. `npm run dev` builds WASM once
+and starts Vite with hot module replacement on both localhost address families
+at port 3000. Development unregisters any older app service worker and clears
+this app's local offline caches so they cannot serve stale production files.
+Use the production preview to check offline behavior. After changing Rust, run
+`npm run build:wasm` again.
 
 Production CSS is minified, raster photography is served as WebP with a smaller
 responsive homepage source, and the map and hike data load as separate chunks

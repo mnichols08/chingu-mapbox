@@ -11,20 +11,20 @@ const DIST = path.join(ROOT, "dist");
 
 fs.mkdirSync(DIST, { recursive: true });
 const site = buildSite();
-let homepage = fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8");
+let homepage = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 homepage = homepage.replace("__PLANNING_GUIDES__", site.planningCards);
 homepage = homepage.replace("__LOCAL_GUIDES__", site.localCards);
+homepage = homepage.replace("./src/site.scss", "./site.css");
 fs.writeFileSync(path.join(DIST, "index.html"), homepage);
+const explorer = fs.readFileSync(path.join(ROOT, "explore.html"), "utf8")
+  .replace("./src/site.scss", "./site.css");
+fs.writeFileSync(path.join(DIST, "explore.html"), explorer);
 for (const name of PUBLIC_ASSETS) {
-  if (name === "index.html") continue;
   const destination = path.join(DIST, name);
   fs.mkdirSync(path.dirname(destination), { recursive: true });
-  if (name === "site.css") {
-    fs.writeFileSync(destination, sass.compile(path.join(PUBLIC, name), { style: "compressed" }).css);
-  } else {
-    fs.copyFileSync(path.join(PUBLIC, name), destination);
-  }
+  fs.copyFileSync(path.join(PUBLIC, name), destination);
 }
+fs.writeFileSync(path.join(DIST, "site.css"), sass.compile(path.join(ROOT, "src", "site.scss"), { style: "compressed" }).css);
 for (const page of site.pages) fs.writeFileSync(path.join(DIST, page.name), page.source);
 
 const assets = [...new Set([

@@ -37,7 +37,7 @@ for data limits, analysis details, and attribution.
 | JavaScript | Node build scripts and site behavior |
 | HTML and CSS | Accessible page structure, responsive layouts, and styling |
 | Markdown with YAML front matter | Trip guide content and metadata |
-| Mapbox GL JS, Webpack, Sass, and Node.js | Interactive maps, bundling, CSS processing, and build tooling |
+| Mapbox GL JS, Vite, Sass, and Node.js | Interactive maps, development server, asset bundling, and CSS processing |
 
 The front end uses browser APIs including IndexedDB, Web Workers, and service
 workers. It does not use a client-side UI framework.
@@ -60,15 +60,15 @@ Mapbox token (`pk.` prefix):
 cp map-config.example.json map-config.local.json
 ```
 
-Then run the production build and local server:
+Start the Vite development server (it builds the Rust/WASM module first):
 
 ```sh
-npm run build
-npm start
+npm run dev
 ```
 
-Open `http://localhost:3000`. The token is public to browser visitors, so
-restrict it to the domains you use and grant only the required scopes. Never
+Open `http://localhost:3000`. For a production build, run `npm run build` and
+then `npm start` to serve it on port 3000. The token is public to browser
+visitors, so restrict it to the domains you use and grant only the required scopes. Never
 put a secret `sk.` token in this app. On deployment, provide `map-config.json`
 beside `index.html` as a separate runtime file; it is intentionally excluded
 from source control and the offline cache. The rest of the site still builds
@@ -80,7 +80,8 @@ without it, but the basemap will show a setup message.
 | --- | --- |
 | `npm run build` | Build Rust/WASM, type-check TypeScript, and create production files in `dist` |
 | `npm run build:content` | Rebuild guide pages, homepage cards, sitemap, and robots file without rebuilding Rust/WASM |
-| `npm run dev` | Build the WASM engine, watch frontend changes, and run the local server |
+| `npm run dev` | Build the WASM engine and start Vite with hot module replacement on port 3000 |
+| `npm run preview` | Preview the production build with Vite on port 4173 |
 | `npm run typecheck` | Type-check the TypeScript app |
 | `npm test` | Run TypeScript tests |
 | `npm run test:rust` | Run Rust tests |

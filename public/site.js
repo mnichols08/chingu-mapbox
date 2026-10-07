@@ -115,6 +115,20 @@
     sayInstallStatus("You’re using the installed app.");
   });
 
+  const localDevelopment = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(location.hostname);
+  if (localDevelopment && "serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      if (!registrations.length) return;
+      return Promise.all([
+        ...registrations.map((registration) => registration.unregister()),
+        caches.keys().then((names) => Promise.all(names
+          .filter((name) => name.startsWith("chingu-adventures-") || name.startsWith("chingu-mapbox-"))
+          .map((name) => caches.delete(name)))),
+      ]).then(() => location.reload());
+    }).catch(() => {});
+    return;
+  }
+
   if (!("serviceWorker" in navigator)) {
     const message = "This browser can’t cache pages for offline use.";
     sayInstallStatus(message);

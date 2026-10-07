@@ -10,9 +10,13 @@ export type AnalysisResponse =
 
 self.onmessage = async ({ data }: MessageEvent<AnalysisRequest>) => {
   try {
-    const { analyze_gpx } = await import("../rust/pkg/adventure_analysis");
+    const wasm = await import("../rust/pkg/adventure_analysis.js") as unknown as {
+      default: () => Promise<unknown>;
+      analyze_gpx: (xml: string) => string;
+    };
+    await wasm.default();
     const start = performance.now();
-    const analysis: Analysis = JSON.parse(analyze_gpx(data.xml));
+    const analysis: Analysis = JSON.parse(wasm.analyze_gpx(data.xml));
     const response: AnalysisResponse = { id: data.id, analysis, elapsedMs: performance.now() - start };
     self.postMessage(response);
   } catch (error) {

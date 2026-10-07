@@ -17,12 +17,10 @@
 		{
 			"label": "Preview adventure explorer",
 			"type": "shell",
-			"command": "node",
+			"command": "npm",
 			"args": [
-				"node_modules\\serve\\build\\main.js",
-				"dist",
-				"-l",
-				"4173"
+				"run",
+				"preview"
 			],
 			"isBackground": true,
 			"problemMatcher": []
