@@ -1,6 +1,9 @@
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const sass = require("sass");
+const { buildSite } = require("./scripts/content-site");
+const { PUBLIC_ASSETS } = require("./scripts/site-assets");
 
 class OfflineAssetsPlugin {
   apply(compiler) {
@@ -12,10 +15,18 @@ class OfflineAssetsPlugin {
           stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE,
         },
         () => {
-          for (const name of ["index.html", "manifest.webmanifest", "icons/icon.svg"]) {
-            compilation.emitAsset(name, new RawSource(fs.readFileSync(path.join(__dirname, "public", name))));
+          const site = buildSite();
+          for (const name of PUBLIC_ASSETS) {
+            let contents = fs.readFileSync(path.join(__dirname, "public", name), /\.(png|jpe?g|webp)$/i.test(name) ? undefined : "utf8");
+            if (name === "site.css") contents = sass.compileString(contents, { style: "compressed" }).css;
+            if (name === "index.html") {
+              contents = contents.replace("__PLANNING_GUIDES__", site.planningCards);
+              contents = contents.replace("__LOCAL_GUIDES__", site.localCards);
+            }
+            compilation.emitAsset(name, new RawSource(contents));
           }
-          const assets = compilation.getAssets().filter(({ name }) => !name.endsWith(".map"));
+          for (const page of site.pages) compilation.emitAsset(page.name, new RawSource(page.source));
+          const assets = compilation.getAssets().filter(({ name }) => name !== "map-config.json" && !name.endsWith(".map"));
           const hash = crypto.createHash("sha256");
           for (const asset of assets) {
             hash.update(asset.name);
@@ -43,22 +54,32 @@ class OfflineAssetsPlugin {
   }
 }
 
-module.exports = {
+module.exports = (_env, argv = {}) => ({
   entry: path.resolve(__dirname, "src", "app.ts"),
-  devtool: "source-map",
+  // Keep maps available during local development without publishing the full
+  // source tree and source-map payloads with production static assets.
+  devtool: argv.mode === "production" ? false : "source-map",
   experiments: { asyncWebAssembly: true },
   module: {
     rules: [
       { test: /\.ts$/, exclude: /node_modules/, use: { loader: "ts-loader", options: { compilerOptions: { noEmit: false } } } },
-      { test: /\.css$/i, use: ["style-loader", "css-loader"] },
+      {
+        test: /\.css$/i,
+        use: [
+          "style-loader",
+          "css-loader",
+          { loader: "sass-loader", options: { sassOptions: { style: "compressed" } } },
+        ],
+      },
     ],
   },
   resolve: { extensions: [".ts", ".js"] },
   output: {
     path: path.resolve(__dirname, "dist"),
+    clean: { keep: /^map-config\.json$/ },
     filename: "app.js",
     chunkFilename: "[name].[contenthash:12].js",
     publicPath: "auto",
   },
   plugins: [new OfflineAssetsPlugin()],
-};
+});

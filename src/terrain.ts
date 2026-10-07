@@ -2,9 +2,9 @@ import type { Map } from "mapbox-gl";
 import { regionMinZoom } from "./region";
 
 export const TERRAIN_SOURCE = "adventure-terrain";
-export const TERRAIN_PITCH = 50;
+export const TERRAIN_PITCH = 45;
 export const MAX_PITCH = 85;
-export const TERRAIN_EXAGGERATION = 5;
+export const TERRAIN_EXAGGERATION = 1.8;
 
 export function setTerrainElevation(map: Map, enabled: boolean, exaggeration = TERRAIN_EXAGGERATION): void {
   if (!Number.isFinite(exaggeration) || exaggeration < 1 || exaggeration > 10) {

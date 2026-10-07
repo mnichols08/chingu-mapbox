@@ -1,12 +1,53 @@
-# Chingu Solo Project - Tier 2 - Mapbox API
+# Garrett County Adventures — Project Guide
 
-## Garrett County Adventures
+For the project overview, quick start, language and tool list, and command
+reference, start with the [main README](../README.md).
+
+## Purpose and technology
+
+This project helps people plan visits to Garrett County, Maryland. The
+homepage provides local trip guides; the interactive explorer brings together
+curated places, mapped regional routes and paths, and local GPX analysis.
+It is a planning aid, not a navigation service or a source of verified access,
+conditions, or accessibility information.
+
+The browser app is written in **TypeScript** and uses Mapbox GL JS. **Rust** is
+compiled to WebAssembly for GPX calculations, which run in a Web Worker.
+Build scripts and some site behavior use **JavaScript**; page content is
+**HTML/CSS**, with guide articles authored in **Markdown** and YAML front
+matter. Webpack, Sass, Node.js, IndexedDB, and service workers support the
+build, styling, local storage, and offline app shell.
 
 The explorer now includes a responsive, keyboard-accessible place browser,
 activity filters, synchronized map selection, shareable place/search URLs,
 local saved outings, and a GPX trail lab powered by Rust and WebAssembly.
 The original 16 curated places remain the discovery dataset. No new trail,
 accessibility, opening-hours, or live-condition information is assumed.
+
+The homepage leads with local trip guides and Garrett County's scenery. The
+interactive map lives at `/explore.html` and is linked from the site footer.
+Article source files live in `content/articles/` as Markdown with YAML front
+matter. The webpack production build emits each article's root-level `.html`
+permalink, plus `sitemap.xml` and `robots.txt`, into `dist`. Keep article
+permalinks stable so search results and existing internal links do not break.
+Guide metadata such as descriptions, related articles, source lists, and
+last-checked dates is rendered from each article's front matter. The
+`npm run build:content` command refreshes these pages without rebuilding the
+map's Rust/WebAssembly engine. The site follows the device color preference by
+default, lets visitors choose a theme, and offers platform-appropriate PWA
+installation guidance. Its service worker caches the guide pages and app shell;
+Mapbox basemap tiles still need an internet connection.
+Article Markdown is rendered at build time. Raw HTML is restricted to a small
+allowlist, and Markdown text and link labels are HTML-escaped.
+
+## Using the app
+
+Open the homepage to browse trip guides, then choose **Explore the map** to
+open `/explore.html`. Search or filter the curated places and select a result
+to sync it with the map. The map starts in 3D terrain mode; scroll the mouse
+wheel to zoom. **Return to 2D** disables terrain. Use **Hikes** to browse the
+bundled map data or request an update, **Trail lab** to import and analyze a
+GPX file, and **Saved** to reopen details stored in this browser.
 
 ### Build and run
 
@@ -39,6 +80,15 @@ the web app into `dist`. VS Code also provides build and preview tasks; the
 preview task listens on port 4173. `npm run dev` builds WASM once and watches
 frontend changes. After changing Rust, run `npm run build:wasm` again.
 
+Production CSS is minified, raster photography is served as WebP with a smaller
+responsive homepage source, and the map and hike data load as separate chunks
+when needed. Production builds omit source maps; development builds retain them.
+Deploy the complete contents of `dist` together so the versioned service worker
+and its precached assets stay in sync. Configure the static host to revalidate
+HTML and `service-worker.js` on each visit, and cache content-hashed bundles
+longer term. The hosting project is not tied to a specific provider, so its
+cache headers must be set in that provider's deployment configuration.
+
 ```sh
 npm test
 npm run test:rust
@@ -47,17 +97,19 @@ npm run typecheck
 
 ### OpenStreetMap hike discovery
 
-The map starts in top-down **2D**. Use **3D terrain** to enable Mapbox DEM
-elevation terrain (5x visual exaggeration by default) and a 50-degree camera
-pitch, or retain a higher camera pitch. In 3D mode a 50-degree minimum is
-enforced for sliders, gestures, and camera movements. **Map view settings**
-is collapsed by default; open it to access keyboard-accessible sliders for pitch (50-85 degrees in 3D,
-0-85 without terrain) and steepness (1-10x).
+The map starts in **3D terrain** mode with a 45-degree camera pitch and 1.8x
+visual elevation exaggeration. Use the mouse wheel to zoom in or out over the
+map. Choose **Return to 2D** to remove terrain and reset pitch and bearing.
+In 3D mode a 45-degree minimum pitch is enforced for sliders, gestures, and
+camera movements. **Map view settings** is collapsed by default; open it to
+access keyboard-accessible sliders for pitch (45-85 degrees in 3D, 0-85
+without terrain) and steepness (1-10x).
 Steepness changes only visual elevation, not measured slopes or GPX statistics,
 and applies only while 3D terrain is enabled. Preferences last for the current
 page session. Pitch stays synchronized with map gestures.
-**Return to 2D** removes terrain and resets pitch/bearing. The toggle is
-independent of manual camera controls: right-click-and-drag (or Ctrl-drag)
+**3D terrain** can be disabled with **Return to 2D**, which removes terrain and
+resets pitch/bearing. The toggle is independent of manual camera controls:
+right-click-and-drag (or Ctrl-drag)
 on desktop, or drag two fingers vertically on touch screens to adjust pitch
 up to Mapbox's 85-degree maximum. The compass shows camera orientation and resets bearing when
 clicked. Manual tilt also works without elevation terrain enabled.
@@ -185,93 +237,3 @@ The runtime public Mapbox token is used for browser requests. Configure
 appropriate domain restrictions and usage limits in Mapbox before deploying
 to a new domain. Advanced routing, terrain downloads, and trip optimization
 remain future work requiring licensed, validated geographic data.
-
-## Original Chingu project brief
-
-![Tier2 Mapbox API](/assets/Tier2_mapbox_api.gif)
-
-## Overview
-
-This project helps you gain experience in using API's to enhance the value
-your applications provide to their users. Your objective with this project is 
-to build a web application using the Mapbox API to build a map of a city of 
-your choice.
-
-## About Chingu
-
-If you aren’t yet a member of Chingu we invite you to join us. We help our 
-members transform what they’ve learned in courses & tutorials into the 
-practical experience employers need and want.
-
-Our remote team projects let you refine your technical skills and put them 
-into practice while gaining new “soft” skills like communication, 
-collaboration, and Agile project management. The types of skills that 
-help real-world teams get things done!
-
-You can learn more and join us at [chingu.io](https://chingu.io).
-
-## Instructions
-
-General instructions for all Solo Projects are located in the 
-[Chingu Library](https://voyage.docs.chingu.io/prework/howwork). For detailed 
-requirements, please checkout the following.
-
-### Requirements
-
-*Structure*
-- [ ] Read over the Mapbox API documentation
-
-      Topics to look for in the [Mapbox API](https://docs.mapbox.com/api/) documentation:
-      - API endpoint
-      - Setting up an API token
-      - Setting up a request aka limits to the returned result, etc
-      - How to query only for the exact info you need.
-
-- Setup your parent component containing at least the following:
-  - [ ] Navigation (or a button to toggle the sidebar)
-  - [ ] Sidebar
-  - [ ] Map
-- Create a sidebar with the following elements:
-  - [ ] Search input field
-  - [ ] A list of search results (should match the markers on the map)
-  - [ ] A button to toggle the display/hide of the sidebar
-- Create a map component to contain the map of your city and location markers
-
-*Style*
-- [ ] You may use any style you choose. However, it should be consistent (e.g.
-font, font size, color scheme, layout, etc.).
-  - See [Consistent Web Design](https://1stwebdesigner.com/consistent-web-design/)
-  - See [Why is consistency important in Web Design?](https://laceytechsolutions.co.uk/blog/importance-of-consistency-in-web-design/)
-
-*Functionality*
-- Sidebar behaviors:
-  - [ ] By default all available markers should be displayed
-  - [ ] Markers update in search results and on the map while the user is 
-  typing into the search input field
-  - [ ] User should be able to click a button to toggle the sidebar visibility
-- The map component should display:
-  - [ ] The map of your city using the Mapbox API
-  - [ ] At least five markers for five unique locations or attractions in your city
-
-*Other*
-- [ ] Your repo needs to have a robust `README.md` (See [Keys to a Well-Written Readme](https://medium.com/chingu/keys-to-a-well-written-readme-55c53d34fe6d))
-- [ ] Before submitting make sure that there are no errors in the developer console
-- [ ] Anticipate and handle any edge cases
-  - [ ] Does entering random data, such as a mix of alphbetic, numeric, and
-  special characters in the search input result in an error?
-  - [ ] What is displayed if the search location is not found?
-- [ ] The app should be responsive across multiple devices (e.g. phone, tablet, 
-laptop, and desktop computers)
-
-**Extras (Not Required)**
-
-- [ ] Use as FEW external packages and libraries as possible to reduce the 
-number of dependencies.
-- [ ] Include tests cases using tools like Jest, Enzyme, etc.
-- [ ] Use Accessibility techniques (i.e. a11ly) to improve your site for users 
-with impairments 
-- [ ] Add a `CONTRIBUTING.md` file with instructions on how to contribute to
-your project
-- [x] Implement a service worker to make the app installable as **Garrett County
-Adventures** and cache its app shell and local analysis engine. Mapbox tiles and API requests still require
-a network connection. Installation requires HTTPS or localhost.

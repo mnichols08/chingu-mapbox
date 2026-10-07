@@ -1,4 +1,4 @@
-import mapboxgl from "mapbox-gl";
+import type mapboxgl from "mapbox-gl";
 import { loadMapboxToken } from "./map-config";
 import type { FeatureCollection } from "geojson";
 import {
@@ -6,8 +6,7 @@ import {
   type Place, type Analysis, type SavedOuting, type TrailPoint,
 } from "./domain";
 import { readOutings, writeOuting, removeOuting, readDiscovery, writeDiscovery } from "./storage";
-import { discoverHikes, hikeGpx, makeGpx, mergeDiscovery, parseSnapshot, OVERPASS_SERVERS, type Hike, type HikeSource } from "./hikes";
-import regionalSnapshot from "./model/hikes.json";
+import { discoverHikes, hikeGpx, makeGpx, mergeDiscovery, parseSnapshot, OVERPASS_SERVERS, type Hike, type HikeDiscovery, type HikeSource } from "./hikes";
 import { REGION_BOUNDS, regionMinZoom } from "./region";
 import { applyTerrainView, applyCameraPitch, setTerrainElevation, terrainMinZoom,
   TERRAIN_SOURCE, TERRAIN_PITCH, MAX_PITCH, TERRAIN_EXAGGERATION } from "./terrain";
@@ -38,20 +37,24 @@ function button(text: string, action: () => void, className = "button"): HTMLBut
 }
 
 get("app", HTMLElement).innerHTML = `
-  <a class="skip-link" href="#workspace">Skip to explorer</a>
   <header class="topbar">
-    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">G</span>
-      <span>Garrett County<span class="brand-subtitle">ADVENTURES / MARYLAND</span></span>
+    <a class="brand" href="./">
+      <span>Garrett County Adventures<span class="brand-subtitle">MARYLAND’S HIDDEN GEM</span></span>
     </a>
     <span class="header-caption">Less scrolling. More exploring.</span>
+    <a class="header-link" href="./#trip-guides">Trip guides</a>
     <span id="connection" class="connection"></span>
   </header>
-  <div class="workspace" id="workspace" tabindex="-1">
+  <div class="workspace" id="adventure-map" tabindex="-1">
     <section class="map-region" aria-label="Adventure map">
       <div id="map" aria-busy="true"></div>
+      <div class="map-loading" role="status" aria-live="polite">
+        <span class="map-loading-spinner" aria-hidden="true"></span>
+        <span>Loading map…</span>
+      </div>
       <div class="map-caption"><strong>Your next adventure starts here.</strong><span id="map-summary">Garrett County and its immediate surroundings.</span></div>
       <button id="reset-map" type="button" class="map-reset">Show all places</button>
-      <button id="terrain-toggle" type="button" class="terrain-toggle" aria-pressed="false" disabled>3D terrain</button>
+      <button id="terrain-toggle" type="button" class="terrain-toggle" aria-pressed="true" disabled>Return to 2D</button>
       <p id="map-notice" class="map-notice" hidden></p>
     </section>
     <aside class="sidebar" aria-label="Adventure explorer">
@@ -72,7 +75,7 @@ get("app", HTMLElement).innerHTML = `
         </details>
         <section id="explore-panel">
           <p class="eyebrow">THE GREAT OUTDOORS, CLOSE TO HOME</p>
-          <h1>Find your kind<br>of adventure.</h1>
+          <h2>Find your kind<br>of adventure.</h2>
           <p class="intro">Waterfalls, quiet lakes, and mountain views. Pick a place and make a day of it.</p>
           <label class="field-label" for="search">Search places and activities</label>
           <input id="search" type="search" placeholder="Try waterfalls or camping" autocomplete="off">
@@ -91,7 +94,7 @@ get("app", HTMLElement).innerHTML = `
           <label for="hike-server" class="field-label">Public trail service</label>
           <select id="hike-server"></select>
           <div class="card-actions">
-            <button id="find-hikes" type="button" class="button primary">Refresh regional hikes</button>
+            <button id="find-hikes" type="button" class="button primary" disabled>Refresh regional hikes</button>
             <button id="cancel-hikes" type="button" class="text-button" hidden>Cancel search</button>
           </div>
           <p id="hikes-state" role="status">Search when you are ready. No location permission or API key needed.</p>
@@ -159,15 +162,19 @@ let filtered = places;
 let saved: SavedOuting[] = [];
 let analysis: Analysis | undefined;
 let analysisSource: HikeSource | undefined;
-const bundledDiscovery = parseSnapshot(regionalSnapshot);
-let discovery = bundledDiscovery;
+let bundledDiscovery: HikeDiscovery | undefined;
+let cachedDiscovery: HikeDiscovery | undefined;
+let discovery: HikeDiscovery = { hikes: [], retrievedAt: "", skipped: 0 };
+let discoveryReady = false;
 let discoveryRequest: AbortController | undefined;
+let hikesRendered = false;
 let previewHike: Hike | undefined;
 let trailPoints: TrailPoint[] = [];
 let savedTrailId: string | undefined;
 let map: mapboxgl.Map | undefined;
+let mapboxglRuntime: typeof import("mapbox-gl").default | undefined;
 let mapReady = false;
-let terrainEnabled = false;
+let terrainEnabled = true;
 let popup: mapboxgl.Popup | undefined;
 let pointMarker: mapboxgl.Marker | undefined;
 let worker: Worker | undefined;
@@ -198,6 +205,7 @@ function perform(action: () => Promise<void>): void {
 
 function switchTab(tab: string): void {
   activeTab = tab;
+  if (tab === "hikes" && !hikesRendered) renderHikes();
   for (const name of ["explore", "hikes", "analyze", "saved"]) {
     get(`${name}-panel`, HTMLElement).hidden = name !== tab;
   }
@@ -259,7 +267,7 @@ function regionalHikeData(): FeatureCollection {
 }
 function focusTrail(): void {
   if (!mapReady || !map || !analysis) return;
-  const bounds = new mapboxgl.LngLatBounds();
+  const bounds = new mapboxglRuntime!.LngLatBounds();
   for (const segment of analysis.segments) {
     for (const point of segment) bounds.extend([point.longitude, point.latitude]);
   }
@@ -286,7 +294,7 @@ function selectPlace(place: Place, move = true): void {
   history.replaceState(null, "", url);
   if (mapReady && map) {
     popup?.remove();
-    popup = new mapboxgl.Popup({ offset: 14 })
+    popup = new mapboxglRuntime!.Popup({ offset: 14 })
       .setLngLat(place.coordinates)
       .setDOMContent(node("strong", place.name))
       .addTo(map);
@@ -567,12 +575,23 @@ get("export-trail", HTMLButtonElement).onclick = () => {
   if (analysis) downloadGpx(analysis.name, makeGpx(analysis.name, analysis.segments, analysisSource));
 };
 
+function updateMapSummary(): void {
+  get("map-summary", HTMLSpanElement).textContent = discoveryReady
+    ? `${places.length} local places / ${discovery.hikes.length} mapped regional routes and paths.`
+    : `${places.length} local places / Loading regional routes and paths…`;
+}
+
 function renderHikes(): void {
-  get("map-summary", HTMLSpanElement).textContent = `${places.length} local places / ${discovery.hikes.length} mapped regional routes and paths.`;
+  updateMapSummary();
   const list = get("hike-list", HTMLUListElement);
   list.replaceChildren();
   const term = get("hike-search", HTMLInputElement).value.trim().toLowerCase();
   const kind = get("hike-kind", HTMLSelectElement).value;
+  if (!discoveryReady) {
+    get("hike-count", HTMLParagraphElement).textContent = "Loading bundled trail data…";
+    list.append(node("li", "Bundled trail data is loading. The trails will appear here shortly.", "empty"));
+    return;
+  }
   const matches = (discovery?.hikes || []).filter((hike) =>
     hike.name.toLowerCase().includes(term) && (!kind || hike.source.kind === kind),
   );
@@ -592,7 +611,7 @@ function renderHikes(): void {
       previewHike = hike;
       updateMap();
       if (mapReady && map) {
-        const bounds = new mapboxgl.LngLatBounds();
+        const bounds = new mapboxglRuntime!.LngLatBounds();
         hike.segments.forEach((segment) => segment.forEach((point) => bounds.extend(point)));
         map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: reducedMotion() ? 0 : 800 });
       } else notify("Map unavailable. You can still analyze or export this geometry.");
@@ -603,6 +622,7 @@ function renderHikes(): void {
     list.append(card);
   }
   if (discovery && !matches.length) list.append(node("li", "No mapped hikes match. Clear filters or retry discovery later.", "empty"));
+  hikesRendered = true;
 }
 
 get("hike-search", HTMLInputElement).oninput = renderHikes;
@@ -614,7 +634,7 @@ get("cancel-hikes", HTMLButtonElement).onclick = () => {
 };
 
 get("find-hikes", HTMLButtonElement).onclick = () => {
-  if (discoveryRequest) return;
+  if (discoveryRequest || !bundledDiscovery) return;
   const controller = new AbortController();
   const endpoint = get("hike-server", HTMLSelectElement).value;
   discoveryRequest = controller;
@@ -649,14 +669,27 @@ get("find-hikes", HTMLButtonElement).onclick = () => {
   })();
 };
 
-renderHikes();
-get("hikes-state", HTMLParagraphElement).textContent = `${bundledDiscovery.hikes.length} bundled mapped features / snapshot ${new Date(bundledDiscovery.retrievedAt).toLocaleString()}. Available without an API search; not live conditions.`;
+updateMapSummary();
+get("hikes-state", HTMLParagraphElement).textContent = "Loading the bundled regional trail snapshot…";
+void import("./model/hikes.json").then(({ default: snapshot }) => {
+  bundledDiscovery = parseSnapshot(snapshot);
+  discovery = mergeDiscovery(bundledDiscovery, cachedDiscovery);
+  discoveryReady = true;
+  updateMapSummary();
+  get("find-hikes", HTMLButtonElement).disabled = false;
+  if (hikesRendered) renderHikes();
+  const cacheNote = cachedDiscovery ? ` / cached refresh ${new Date(cachedDiscovery.retrievedAt).toLocaleString()}` : "";
+  get("hikes-state", HTMLParagraphElement).textContent = `${discovery.hikes.length} bundled mapped features / snapshot ${new Date(bundledDiscovery.retrievedAt).toLocaleString()}${cacheNote}. Available offline; not live conditions.`;
+  updateMap();
+}).catch(report);
 perform(async () => {
   const cached = await readDiscovery();
+  cachedDiscovery = cached;
   // An explicit search may finish before IndexedDB opens; do not overwrite fresh results.
-  if (cached && discovery === bundledDiscovery && !discoveryRequest) {
+  if (cached && bundledDiscovery && !discoveryRequest) {
     discovery = mergeDiscovery(bundledDiscovery, cached);
-    renderHikes();
+    updateMapSummary();
+    if (hikesRendered) renderHikes();
     updateMap();
     get("hikes-state", HTMLParagraphElement).textContent = `Bundled regional hikes plus cached mapping / latest retrieval ${new Date(discovery.retrievedAt).toLocaleString()}. May be outdated; refresh to check for updates.`;
   }
@@ -726,7 +759,7 @@ function updateProfilePoint(): void {
     dot.setAttribute("cx", String(x)); dot.setAttribute("cy", String(y));
   }
   if (mapReady && map && activeTab === "analyze") {
-    pointMarker ||= new mapboxgl.Marker({ color: "#e9a23b" });
+    pointMarker ||= new mapboxglRuntime!.Marker({ color: "#e9a23b" });
     pointMarker.setLngLat([point.longitude, point.latitude]).addTo(map);
   }
 }
@@ -824,15 +857,18 @@ get("terrain-toggle", HTMLButtonElement).onclick = () => {
 
 async function initializeMap(): Promise<void> {
 try {
-  mapboxgl.accessToken = await loadMapboxToken();
-  map = new mapboxgl.Map({
+  const mapboxModule = await import("mapbox-gl");
+  mapboxglRuntime = mapboxModule.default;
+  mapboxglRuntime.accessToken = await loadMapboxToken();
+  map = new mapboxglRuntime.Map({
     container: "map", style: "mapbox://styles/mapbox/outdoors-v12",
     center: [-79.312, 39.505], zoom: 12,
     maxBounds: REGION_BOUNDS,
-    pitch: 0, bearing: 0, maxPitch: MAX_PITCH,
+    pitch: TERRAIN_PITCH, bearing: 0, maxPitch: MAX_PITCH, scrollZoom: true,
     dragRotate: true, pitchWithRotate: true, touchPitch: true,
     minZoom: regionMinZoom(get("map", HTMLDivElement).clientWidth, get("map", HTMLDivElement).clientHeight),
   });
+  map.once("load", () => get("map", HTMLDivElement).setAttribute("aria-busy", "false"));
   const updateZoomFloor = () => {
     if (map) map.setMinZoom(terrainMinZoom(map.getContainer().clientWidth,
       map.getContainer().clientHeight, map.getPitch()));
@@ -841,9 +877,10 @@ try {
   map.on("pitch", updateZoomFloor);
   map.on("pitch", syncPitchControl);
   map.on("pitchend", updateZoomFloor);
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
+  map.addControl(new mapboxglRuntime.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
   map.on("error", (event) => {
     console.error("Map resource error:", event.error);
+    if (map && !map.isStyleLoaded()) get("map", HTMLDivElement).setAttribute("aria-busy", "false");
     if ("sourceId" in event && event.sourceId === TERRAIN_SOURCE && terrainEnabled && map) {
       applyTerrainView(map, false, true);
       terrainEnabled = false;
@@ -860,14 +897,14 @@ try {
       id: "parks", type: "circle", source: "parks",
       paint: {
         "circle-radius": ["case", ["get", "selected"], 11, 7],
-        "circle-color": ["case", ["get", "selected"], "#e9a23b", "#216653"],
+        "circle-color": ["case", ["get", "selected"], "#e9a23b", "#41694e"],
         "circle-stroke-color": "#fff", "circle-stroke-width": 3,
       },
     });
     map.addSource("trail", { type: "geojson", data: routeData() });
     map.addSource("regional-hikes", { type: "geojson", data: regionalHikeData() });
     map.addLayer({ id: "regional-hikes", type: "line", source: "regional-hikes",
-      paint: { "line-color": "#216653", "line-width": 2, "line-opacity": 0.7 } });
+      paint: { "line-color": "#41694e", "line-width": 2, "line-opacity": 0.7 } });
     map.on("click", "regional-hikes", (event) => {
       const hike = discovery.hikes.find((item) => item.source.id === event.features?.[0]?.properties?.hikeId);
       if (!hike) return;
@@ -889,11 +926,11 @@ try {
     map.on("mouseleave", "parks", () => { if (map) map.getCanvas().style.cursor = ""; });
     mapReady = true;
     if (terrainEnabled) applyTerrainView(map, true, true, terrainExaggeration, map.getPitch());
+    updateTerrainButton();
     get("terrain-toggle", HTMLButtonElement).disabled = false;
     pitchControl.disabled = false;
     steepnessControl.disabled = false;
     syncPitchControl();
-    get("map", HTMLDivElement).setAttribute("aria-busy", "false");
     if (selectedPlace && activeTab === "explore") selectPlace(selectedPlace, false);
     if (analysis) { focusTrail(); updateProfilePoint(); }
   });
@@ -907,7 +944,7 @@ void initializeMap();
 
 get("reset-map", HTMLButtonElement).onclick = () => {
   if (!mapReady || !map) return;
-  const bounds = new mapboxgl.LngLatBounds();
+  const bounds = new mapboxglRuntime!.LngLatBounds();
   places.forEach((place) => bounds.extend(place.coordinates));
   map.fitBounds(bounds, { padding: 50, duration: reducedMotion() ? 0 : 800 });
 };
@@ -920,35 +957,3 @@ selectedPlace = filtered.find((place) => place.id === params.get("place"));
 renderPlaces();
 renderDetails();
 perform(refreshSaved);
-
-if ("serviceWorker" in navigator) {
-  perform(async () => {
-    const registration = await navigator.serviceWorker.register("./service-worker.js");
-    const readiness = get("offline-readiness", HTMLParagraphElement);
-    const ready = () => { readiness.textContent = "App shell and Rust engine are cached for offline use. Basemap tiles are not included."; };
-    if (registration.waiting) {
-      readiness.textContent = "An app update is downloaded. Close app tabs and reopen to activate its offline assets.";
-    } else if (registration.active) ready();
-    else {
-      readiness.textContent = "Downloading the app shell and Rust engine for offline use...";
-      const installing = registration.installing;
-      installing?.addEventListener("statechange", () => {
-        if (installing.state === "activated") ready();
-        if (installing.state === "redundant") {
-          readiness.textContent = "Offline setup failed. Reload while online to retry.";
-          report(new Error("Offline app installation failed."));
-        }
-      });
-    }
-    registration.addEventListener("updatefound", () => {
-      const installing = registration.installing;
-      installing?.addEventListener("statechange", () => {
-        if (installing.state === "installed" && navigator.serviceWorker.controller) {
-          notify("An app update is ready. Close app tabs and reopen to use it.");
-        }
-      });
-    });
-  });
-} else {
-  get("offline-readiness", HTMLParagraphElement).textContent = "This browser cannot cache the app shell. Saved data still remains on this device.";
-}

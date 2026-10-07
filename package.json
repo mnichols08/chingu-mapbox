@@ -1,16 +1,17 @@
 {
   "name": "chingu-mapbox",
   "version": "0.1.0",
-  "description": "This is my Chingu Tier 2 Project submission, a mapbox web app that allows users to search through features within an area.",
+  "description": "Local Garrett County travel guides, an interactive park and trail map, and offline trip tools.",
   "scripts": {
     "build": "npm run build:wasm && npm run typecheck && webpack --mode production",
+    "build:content": "node scripts/build-content.js",
     "build:wasm": "wasm-pack build rust --target bundler --out-dir pkg",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:rust": "cargo test --manifest-path rust/Cargo.toml",
     "refresh:hikes": "tsx scripts/refresh-hikes.ts",
     "dev": "concurrently \"npm run watch\" \"npm start\" --kill-others-on-fail",
-    "start": "serve dist",
+    "start": "serve dist -l 3000 --no-port-switching",
     "watch": "npm run build:wasm && webpack --mode development --watch"
   },
   "repository": {
