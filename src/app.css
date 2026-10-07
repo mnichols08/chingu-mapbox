@@ -57,6 +57,13 @@ input[type="search"], select { width: 100%; border: 1px solid #c9d3c3; border-ra
 .map-caption strong { display: block; font-family: "Manrope", system-ui, sans-serif; font-size: 17px; }
 .map-caption span { display: block; font-size: 12px; color: #637361; margin-top: 5px; }
 .map-reset { position: absolute; bottom: 42px; left: 24px; border: 0; background: white; border-radius: 8px; padding: 12px 16px; box-shadow: 0 2px 12px #163f3522; color: #163f35; font-size: 12px; font-weight: 700; }
+.terrain-toggle { position: absolute; bottom: 42px; right: 24px; border: 1px solid #c5d1bf; background: white; border-radius: 8px; padding: 12px 16px; min-height: 44px; color: #163f35; font-size: 12px; font-weight: 700; box-shadow: 0 2px 12px #163f3522; }
+.terrain-toggle[aria-pressed="true"] { background: #216653; color: white; }
+.map-settings { border: 1px solid #c5d1bf; border-radius: 8px; padding: 12px; margin-bottom: 20px; background: #fff; }
+.map-settings summary { cursor: pointer; font-size: 13px; font-weight: 700; min-height: 32px; }
+.map-settings label { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; margin-top: 8px; }
+.map-settings input[type="range"] { min-height: 44px; }
+.map-settings p { font-size: 11px; line-height: 1.5; color: #657565; margin: 6px 0 0; }
 .map-notice { position: absolute; left: 24px; right: 24px; bottom: 88px; background: #fff4db; border: 1px solid #d7b16c; border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.5; }
 .empty { padding: 24px 18px; border: 1px dashed #becbb3; border-radius: 10px; color: #607064; font-size: 13px; line-height: 1.7; }
 .upload { display: block; background: #e7eddf; border: 1px dashed #8aa57b; border-radius: 12px; padding: 24px 18px; margin-bottom: 10px; cursor: pointer; }
@@ -100,6 +107,7 @@ input[type="range"] { width: 100%; accent-color: #216653; min-height: 36px; }
   .map-caption { padding: 10px 12px; top: 12px; left: 12px; }
   .map-caption strong { font-size: 12px; } .map-caption span { font-size: 10px; }
   .map-reset { bottom: 26px; left: 12px; padding: 10px 12px; font-size: 10px; }
+  .terrain-toggle { bottom: 26px; right: 12px; padding: 10px 12px; font-size: 10px; }
   .map-notice { left: 12px; right: 48px; bottom: 58px; padding: 8px; font-size: 10px; }
   .sidebar { flex: 1; min-height: 0; border-radius: 18px 18px 0 0; margin-top: -12px; position: relative; }
   .tabs { padding: 8px 18px 0; } .tabs button { padding: 12px 6px; font-size: 13px; }

@@ -9,6 +9,8 @@ import { readOutings, writeOuting, removeOuting, readDiscovery, writeDiscovery }
 import { discoverHikes, hikeGpx, makeGpx, mergeDiscovery, parseSnapshot, OVERPASS_SERVERS, type Hike, type HikeSource } from "./hikes";
 import regionalSnapshot from "./model/hikes.json";
 import { REGION_BOUNDS, regionMinZoom } from "./region";
+import { applyTerrainView, applyCameraPitch, setTerrainElevation, terrainMinZoom,
+  TERRAIN_SOURCE, TERRAIN_PITCH, MAX_PITCH, TERRAIN_EXAGGERATION } from "./terrain";
 import type { AnalysisResponse } from "./analysis.worker";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./app.css";
@@ -49,6 +51,7 @@ get("app", HTMLElement).innerHTML = `
       <div id="map" aria-busy="true"></div>
       <div class="map-caption"><strong>Your next adventure starts here.</strong><span id="map-summary">Garrett County and its immediate surroundings.</span></div>
       <button id="reset-map" type="button" class="map-reset">Show all places</button>
+      <button id="terrain-toggle" type="button" class="terrain-toggle" aria-pressed="false" disabled>3D terrain</button>
       <p id="map-notice" class="map-notice" hidden></p>
     </section>
     <aside class="sidebar" aria-label="Adventure explorer">
@@ -59,6 +62,14 @@ get("app", HTMLElement).innerHTML = `
         <button type="button" data-tab="saved" aria-pressed="false">Saved <span id="saved-count">0</span></button>
       </nav>
       <div class="panel-scroll">
+        <details class="map-settings">
+          <summary>Map view settings</summary>
+          <label for="map-pitch">Camera pitch <output id="pitch-reading" for="map-pitch">0 degrees</output></label>
+          <input id="map-pitch" type="range" min="0" max="${MAX_PITCH}" step="1" value="0" disabled>
+          <label for="terrain-steepness">Terrain steepness <output id="steepness-reading" for="terrain-steepness">${TERRAIN_EXAGGERATION}x</output></label>
+          <input id="terrain-steepness" type="range" min="1" max="10" step="0.5" value="${TERRAIN_EXAGGERATION}" disabled>
+          <p>Steepness applies in 3D terrain mode only. Heights are visually exaggerated, not measured slopes.</p>
+        </details>
         <section id="explore-panel">
           <p class="eyebrow">THE GREAT OUTDOORS, CLOSE TO HOME</p>
           <h1>Find your kind<br>of adventure.</h1>
@@ -156,6 +167,7 @@ let trailPoints: TrailPoint[] = [];
 let savedTrailId: string | undefined;
 let map: mapboxgl.Map | undefined;
 let mapReady = false;
+let terrainEnabled = false;
 let popup: mapboxgl.Popup | undefined;
 let pointMarker: mapboxgl.Marker | undefined;
 let worker: Worker | undefined;
@@ -750,6 +762,66 @@ window.addEventListener("online", updateConnection);
 window.addEventListener("offline", updateConnection);
 updateConnection();
 
+function updateTerrainButton(): void {
+  const toggle = get("terrain-toggle", HTMLButtonElement);
+  toggle.setAttribute("aria-pressed", String(terrainEnabled));
+  toggle.textContent = terrainEnabled ? "Return to 2D" : "3D terrain";
+  get("map-pitch", HTMLInputElement).min = String(terrainEnabled ? TERRAIN_PITCH : 0);
+  syncPitchControl();
+}
+
+const pitchControl = get("map-pitch", HTMLInputElement);
+const steepnessControl = get("terrain-steepness", HTMLInputElement);
+let terrainExaggeration = TERRAIN_EXAGGERATION;
+
+function syncPitchControl(): void {
+  if (!map) return;
+  const pitch = Math.round(map.getPitch());
+  pitchControl.value = String(pitch);
+  get("pitch-reading", HTMLOutputElement).value = `${pitch} degrees`;
+  pitchControl.setAttribute("aria-valuetext", `${pitch} degrees`);
+}
+
+pitchControl.oninput = () => {
+  if (!mapReady || !map) return;
+  try {
+    applyCameraPitch(map, pitchControl.valueAsNumber);
+    syncPitchControl();
+  } catch (error) {
+    report(error);
+    syncPitchControl();
+  }
+};
+
+steepnessControl.oninput = () => {
+  if (!mapReady || !map) return;
+  try {
+    const exaggeration = steepnessControl.valueAsNumber;
+    if (terrainEnabled) setTerrainElevation(map, true, exaggeration);
+    terrainExaggeration = exaggeration;
+    get("steepness-reading", HTMLOutputElement).value = `${exaggeration}x`;
+    steepnessControl.setAttribute("aria-valuetext", `${exaggeration} times actual elevation`);
+  } catch (error) {
+    report(error);
+    steepnessControl.value = String(terrainExaggeration);
+  }
+};
+
+get("terrain-toggle", HTMLButtonElement).onclick = () => {
+  if (!mapReady || !map) return;
+  try {
+    const enabled = !terrainEnabled;
+    applyTerrainView(map, enabled, reducedMotion(), terrainExaggeration,
+      map.getPitch() > 0 ? map.getPitch() : TERRAIN_PITCH);
+    terrainEnabled = enabled;
+    updateTerrainButton();
+    if (enabled && !navigator.onLine) mapNotice("3D elevation tiles need a connection. Previously loaded terrain may be incomplete offline.");
+  } catch (error) {
+    report(error);
+    mapNotice("Could not change terrain mode. Try again while online.");
+  }
+};
+
 async function initializeMap(): Promise<void> {
 try {
   mapboxgl.accessToken = await loadMapboxToken();
@@ -757,14 +829,28 @@ try {
     container: "map", style: "mapbox://styles/mapbox/outdoors-v12",
     center: [-79.312, 39.505], zoom: 12,
     maxBounds: REGION_BOUNDS,
+    pitch: 0, bearing: 0, maxPitch: MAX_PITCH,
+    dragRotate: true, pitchWithRotate: true, touchPitch: true,
     minZoom: regionMinZoom(get("map", HTMLDivElement).clientWidth, get("map", HTMLDivElement).clientHeight),
   });
-  map.on("resize", () => {
-    if (map) map.setMinZoom(regionMinZoom(map.getContainer().clientWidth, map.getContainer().clientHeight));
-  });
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+  const updateZoomFloor = () => {
+    if (map) map.setMinZoom(terrainMinZoom(map.getContainer().clientWidth,
+      map.getContainer().clientHeight, map.getPitch()));
+  };
+  map.on("resize", updateZoomFloor);
+  map.on("pitch", updateZoomFloor);
+  map.on("pitch", syncPitchControl);
+  map.on("pitchend", updateZoomFloor);
+  map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
   map.on("error", (event) => {
     console.error("Map resource error:", event.error);
+    if ("sourceId" in event && event.sourceId === TERRAIN_SOURCE && terrainEnabled && map) {
+      applyTerrainView(map, false, true);
+      terrainEnabled = false;
+      updateTerrainButton();
+      mapNotice("Elevation terrain could not load. Returned to 2D; try 3D again while online.");
+      return;
+    }
     mapNotice("Some map resources are unavailable. You can still browse places and analyze or open saved trails.");
   });
   map.on("style.load", () => {
@@ -802,6 +888,11 @@ try {
     map.on("mouseenter", "parks", () => { if (map) map.getCanvas().style.cursor = "pointer"; });
     map.on("mouseleave", "parks", () => { if (map) map.getCanvas().style.cursor = ""; });
     mapReady = true;
+    if (terrainEnabled) applyTerrainView(map, true, true, terrainExaggeration, map.getPitch());
+    get("terrain-toggle", HTMLButtonElement).disabled = false;
+    pitchControl.disabled = false;
+    steepnessControl.disabled = false;
+    syncPitchControl();
     get("map", HTMLDivElement).setAttribute("aria-busy", "false");
     if (selectedPlace && activeTab === "explore") selectPlace(selectedPlace, false);
     if (analysis) { focusTrail(); updateProfilePoint(); }

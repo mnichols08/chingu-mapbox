@@ -47,6 +47,26 @@ npm run typecheck
 
 ### OpenStreetMap hike discovery
 
+The map starts in top-down **2D**. Use **3D terrain** to enable Mapbox DEM
+elevation terrain (5x visual exaggeration by default) and a 50-degree camera
+pitch, or retain a higher camera pitch. In 3D mode a 50-degree minimum is
+enforced for sliders, gestures, and camera movements. **Map view settings**
+is collapsed by default; open it to access keyboard-accessible sliders for pitch (50-85 degrees in 3D,
+0-85 without terrain) and steepness (1-10x).
+Steepness changes only visual elevation, not measured slopes or GPX statistics,
+and applies only while 3D terrain is enabled. Preferences last for the current
+page session. Pitch stays synchronized with map gestures.
+**Return to 2D** removes terrain and resets pitch/bearing. The toggle is
+independent of manual camera controls: right-click-and-drag (or Ctrl-drag)
+on desktop, or drag two fingers vertically on touch screens to adjust pitch
+up to Mapbox's 85-degree maximum. The compass shows camera orientation and resets bearing when
+clicked. Manual tilt also works without elevation terrain enabled.
+The toggle is keyboard accessible, respects reduced-motion preferences, and remains disabled
+until the map style loads. Terrain tiles require connectivity and ordinary
+Mapbox usage applies. Terrain errors return the map to 2D with a visible notice.
+Map bounds remain constrained in both modes; the zoom floor tightens for tilted
+viewports. This visual terrain does not supply elevation data to GPX analysis.
+
 The map is constrained to the original project bounds: southwest
 `[-79.48696767001076, 39.202068911240104]`, northeast
 `[-79.08637004392415, 39.722221540464716]`. This is a rectangular Garrett County
