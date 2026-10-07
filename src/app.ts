@@ -5,7 +5,10 @@ import {
   places, activityOptions, filterPlaces, estimateMinutes, formatDistance, formatDuration,
   type Place, type Analysis, type SavedOuting, type TrailPoint,
 } from "./domain";
-import { readOutings, writeOuting, removeOuting } from "./storage";
+import { readOutings, writeOuting, removeOuting, readDiscovery, writeDiscovery } from "./storage";
+import { discoverHikes, hikeGpx, makeGpx, mergeDiscovery, parseSnapshot, OVERPASS_SERVERS, type Hike, type HikeSource } from "./hikes";
+import regionalSnapshot from "./model/hikes.json";
+import { REGION_BOUNDS, regionMinZoom } from "./region";
 import type { AnalysisResponse } from "./analysis.worker";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./app.css";
@@ -44,13 +47,14 @@ get("app", HTMLElement).innerHTML = `
   <div class="workspace" id="workspace" tabindex="-1">
     <section class="map-region" aria-label="Adventure map">
       <div id="map" aria-busy="true"></div>
-      <div class="map-caption"><strong>Your next adventure starts here.</strong><span>16 local places. One remarkable landscape.</span></div>
+      <div class="map-caption"><strong>Your next adventure starts here.</strong><span id="map-summary">Garrett County and its immediate surroundings.</span></div>
       <button id="reset-map" type="button" class="map-reset">Show all places</button>
       <p id="map-notice" class="map-notice" hidden></p>
     </section>
     <aside class="sidebar" aria-label="Adventure explorer">
       <nav class="tabs" aria-label="Explorer views">
         <button type="button" data-tab="explore" aria-pressed="true">Discover</button>
+        <button type="button" data-tab="hikes" aria-pressed="false">Hikes</button>
         <button type="button" data-tab="analyze" aria-pressed="false">Trail lab</button>
         <button type="button" data-tab="saved" aria-pressed="false">Saved <span id="saved-count">0</span></button>
       </nav>
@@ -69,6 +73,27 @@ get("app", HTMLElement).innerHTML = `
           <p id="empty-results" class="empty" hidden>No places match. Try a different activity or clear your search.</p>
           <p class="data-note">Curated project data, not live conditions. Verify access, opening hours, and trail suitability before heading out. Accessibility has not been verified.</p>
         </section>
+        <section id="hikes-panel" hidden>
+          <p class="eyebrow">OPENSTREETMAP / GARRETT COUNTY REGION</p>
+          <h1>Find a trail.</h1>
+          <p class="intro">Local hiking routes and named paths are included with the app. Browse them immediately, or check for updated mapping. Community data, not verified hiking recommendations.</p>
+          <label for="hike-server" class="field-label">Public trail service</label>
+          <select id="hike-server"></select>
+          <div class="card-actions">
+            <button id="find-hikes" type="button" class="button primary">Refresh regional hikes</button>
+            <button id="cancel-hikes" type="button" class="text-button" hidden>Cancel search</button>
+          </div>
+          <p id="hikes-state" role="status">Search when you are ready. No location permission or API key needed.</p>
+          <label for="hike-search" class="field-label">Filter downloaded hikes</label>
+          <input id="hike-search" type="search" placeholder="Search trail names" autocomplete="off">
+          <label for="hike-kind" class="field-label">Map feature type</label>
+          <select id="hike-kind"><option value="">Routes and paths</option><option>Hiking route</option><option>Mapped path</option></select>
+          <p id="hike-count" role="status" class="data-note"></p>
+          <ul id="hike-list" class="place-list"></ul>
+          <p class="data-note">Relations may contain branches, gaps, and alternate sections. Each mapped way is kept as its own GPX segment; analysis sums those segments, not a verified end-to-end hike. No elevation is supplied. Check permissions and current conditions before walking.</p>
+          <p class="data-note">Geometry is clipped to the regional map boundary. Longer trails may be partial; distances and exports cover only the included portion.</p>
+          <p class="data-note">Data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, ODbL. Regional searches use the public Overpass service; cached results may be outdated.</p>
+        </section>
         <section id="analyze-panel" hidden>
           <p class="eyebrow">POWERED BY RUST + WEBASSEMBLY</p>
           <h1>Know your trail.</h1>
@@ -78,6 +103,7 @@ get("app", HTMLElement).innerHTML = `
           <div class="analysis-controls"><p id="analysis-state" role="status">Ready when you are.</p><button id="cancel-analysis" class="text-button" type="button" hidden>Cancel</button></div>
           <div id="trail-results" hidden>
             <h2 id="trail-name"></h2>
+            <div id="trail-source" class="data-note" hidden></div>
             <div id="trail-stats" class="stats"></div>
             <p id="elevation-note" class="data-note"></p>
             <div id="profile-container">
@@ -92,6 +118,7 @@ get("app", HTMLElement).innerHTML = `
             <p id="duration" class="duration"></p>
             <p class="data-note">Planning estimate, not navigation or a safety assessment. Excludes breaks, driving, surface conditions, and weather. Climb uses raw GPX elevations; GPS noise can inflate totals. Segment gaps are never connected.</p>
             <button id="save-trail" type="button" class="button primary">Save trail offline</button>
+            <button id="export-trail" type="button" class="button">Export GPX</button>
             <p id="engine-timing" class="engine-timing"></p>
           </div>
         </section>
@@ -120,6 +147,11 @@ let selectedPlace: Place | undefined;
 let filtered = places;
 let saved: SavedOuting[] = [];
 let analysis: Analysis | undefined;
+let analysisSource: HikeSource | undefined;
+const bundledDiscovery = parseSnapshot(regionalSnapshot);
+let discovery = bundledDiscovery;
+let discoveryRequest: AbortController | undefined;
+let previewHike: Hike | undefined;
 let trailPoints: TrailPoint[] = [];
 let savedTrailId: string | undefined;
 let map: mapboxgl.Map | undefined;
@@ -154,7 +186,7 @@ function perform(action: () => Promise<void>): void {
 
 function switchTab(tab: string): void {
   activeTab = tab;
-  for (const name of ["explore", "analyze", "saved"]) {
+  for (const name of ["explore", "hikes", "analyze", "saved"]) {
     get(`${name}-panel`, HTMLElement).hidden = name !== tab;
   }
   document.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((element) => {
@@ -162,6 +194,7 @@ function switchTab(tab: string): void {
   });
   if (tab !== "analyze") pointMarker?.remove();
   else if (analysis) updateProfilePoint();
+  updateMap();
 }
 
 document.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((element) => {
@@ -183,7 +216,9 @@ function placeData(): FeatureCollection {
 function routeData(): FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: (analysis?.segments || []).filter((segment) => segment.length > 1).map((segment) => ({
+    features: (activeTab === "hikes" && previewHike
+      ? previewHike.segments.map((segment) => segment.map(([longitude, latitude]) => ({ longitude, latitude })))
+      : analysis?.segments || []).filter((segment) => segment.length > 1).map((segment) => ({
       type: "Feature", properties: {},
       geometry: { type: "LineString", coordinates: segment.map((p) => [p.longitude, p.latitude]) },
     })),
@@ -196,8 +231,20 @@ function updateMap(): void {
   const trail = map.getSource("trail");
   if (parks?.type === "geojson") parks.setData(placeData());
   if (trail?.type === "geojson") trail.setData(routeData());
+  const hikes = map.getSource("regional-hikes");
+  if (hikes?.type === "geojson") hikes.setData(regionalHikeData());
 }
 
+function regionalHikeData(): FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: discovery.hikes.flatMap((hike) => hike.segments.map((segment) => ({
+      type: "Feature" as const,
+      properties: { hikeId: hike.source.id, name: hike.name },
+      geometry: { type: "LineString" as const, coordinates: segment },
+    }))),
+  };
+}
 function focusTrail(): void {
   if (!mapReady || !map || !analysis) return;
   const bounds = new mapboxgl.LngLatBounds();
@@ -326,7 +373,7 @@ async function refreshSaved(): Promise<void> {
       } else {
         cancelAnalysis();
         savedTrailId = outing.id;
-        showAnalysis(outing.analysis);
+        showAnalysis(outing.analysis, outing.source);
         switchTab("analyze");
         get("analysis-state", HTMLParagraphElement).textContent = "Loaded from this device. No network needed.";
         get("engine-timing", HTMLParagraphElement).textContent = "Saved Rust analysis";
@@ -341,6 +388,7 @@ async function refreshSaved(): Promise<void> {
       });
     }, "text-button"));
     card.append(actions);
+    if (outing.kind === "trail" && outing.source) card.append(sourceDetails(outing.source));
     list.append(card);
   });
   renderDetails();
@@ -365,17 +413,14 @@ get("cancel-analysis", HTMLButtonElement).onclick = () => {
   get("analysis-state", HTMLParagraphElement).textContent = "Import cancelled. Your previous trail is unchanged.";
 };
 
-fileInput.onchange = () => {
-  const file = fileInput.files?.[0];
-  fileInput.value = "";
-  if (!file) return;
+function analyzeInput(read: () => Promise<string>, source?: HikeSource): void {
   cancelAnalysis();
+  switchTab("analyze");
   const id = requestId;
   void (async () => {
-    if (file.size > 8 * 1024 * 1024) throw new Error("Choose a GPX file no larger than 8 MiB.");
     setBusy(true);
     get("analysis-state", HTMLParagraphElement).textContent = "Loading local Rust engine and analyzing...";
-    const xml = await file.text();
+    const xml = await read();
     if (id !== requestId) return;
     worker = new Worker(new URL("./analysis.worker.ts", import.meta.url), { type: "module" });
     worker.onmessage = ({ data }: MessageEvent<AnalysisResponse>) => {
@@ -389,8 +434,8 @@ fileInput.onchange = () => {
         return;
       }
       savedTrailId = undefined;
-      showAnalysis(data.analysis);
-      get("analysis-state", HTMLParagraphElement).textContent = "Analyzed locally. Nothing was uploaded.";
+      showAnalysis(data.analysis, source);
+      get("analysis-state", HTMLParagraphElement).textContent = source ? "OSM geometry analyzed locally. No elevations were inferred." : "Analyzed locally. Nothing was uploaded.";
       get("engine-timing", HTMLParagraphElement).textContent =
         `Rust/WASM analysis: ${data.elapsedMs.toFixed(1)} ms (excludes engine loading and transfer)`;
       notify("Trail imported and analyzed.");
@@ -408,10 +453,25 @@ fileInput.onchange = () => {
     get("analysis-state", HTMLParagraphElement).textContent = "Import failed. Your previous trail is unchanged.";
     report(error);
   });
+}
+
+fileInput.onchange = () => {
+  const file = fileInput.files?.[0];
+  fileInput.value = "";
+  if (!file) return;
+  analyzeInput(async () => {
+    if (file.size > 8 * 1024 * 1024) throw new Error("Choose a GPX file no larger than 8 MiB.");
+    return file.text();
+  });
 };
 
-function showAnalysis(result: Analysis): void {
+function showAnalysis(result: Analysis, source?: HikeSource): void {
   analysis = result;
+  analysisSource = source;
+  const sourcePanel = get("trail-source", HTMLDivElement);
+  sourcePanel.replaceChildren();
+  sourcePanel.hidden = !source;
+  if (source) sourcePanel.append(sourceDetails(source));
   trailPoints = result.segments.flat();
   get("trail-results", HTMLDivElement).hidden = false;
   get("trail-name", HTMLHeadingElement).textContent = result.name;
@@ -450,12 +510,13 @@ function updateSaveTrailButton(): void {
 get("save-trail", HTMLButtonElement).onclick = () => {
   if (!analysis || savingTrail) return;
   const snapshot = analysis;
-  const id = savedTrailId || `trail:${crypto.randomUUID()}`;
+  const source = analysisSource;
+  const id = savedTrailId || (source ? `osm:${source.id}` : `trail:${crypto.randomUUID()}`);
   savingTrail = true;
   get("save-trail", HTMLButtonElement).disabled = true;
   perform(async () => {
     try {
-      await writeOuting({ id, kind: "trail", name: snapshot.name, savedAt: new Date().toISOString(), analysis: snapshot });
+      await writeOuting({ id, kind: "trail", name: snapshot.name, savedAt: new Date().toISOString(), analysis: snapshot, source });
       if (analysis === snapshot) savedTrailId = id;
       await refreshSaved();
       notify("Trail geometry and analysis saved for offline use.");
@@ -465,6 +526,129 @@ get("save-trail", HTMLButtonElement).onclick = () => {
     }
   });
 };
+
+function sourceDetails(source: HikeSource): HTMLElement {
+  const details = node("div", "", "source-details");
+  details.append(node("p", `${source.kind} / ${source.attribution}. Retrieved ${new Date(source.retrievedAt).toLocaleString()}.`));
+  details.append(node("p", `Access: ${source.tags.access || "unknown"} / Foot access: ${source.tags.foot || "unknown"} / Surface: ${source.tags.surface || "unknown"} / Difficulty tag: ${source.tags.sac_scale || "unknown"}. Tags are unverified, not current conditions.`));
+  if (source.regionalOnly) details.append(node("p", "Geometry is limited to this region and may show only part of a longer route. Distance totals cover this regional portion."));
+  const link = node("a", "View OpenStreetMap source");
+  link.href = source.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  details.append(link);
+  return details;
+}
+
+function downloadGpx(name: string, xml: string): void {
+  const url = URL.createObjectURL(new Blob([xml], { type: "application/gpx+xml;charset=utf-8" }));
+  const link = node("a");
+  link.href = url;
+  link.download = `${name.replace(/[^a-z0-9_-]/gi, "-").slice(0, 80) || "trail"}.gpx`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+get("export-trail", HTMLButtonElement).onclick = () => {
+  if (analysis) downloadGpx(analysis.name, makeGpx(analysis.name, analysis.segments, analysisSource));
+};
+
+function renderHikes(): void {
+  get("map-summary", HTMLSpanElement).textContent = `${places.length} local places / ${discovery.hikes.length} mapped regional routes and paths.`;
+  const list = get("hike-list", HTMLUListElement);
+  list.replaceChildren();
+  const term = get("hike-search", HTMLInputElement).value.trim().toLowerCase();
+  const kind = get("hike-kind", HTMLSelectElement).value;
+  const matches = (discovery?.hikes || []).filter((hike) =>
+    hike.name.toLowerCase().includes(term) && (!kind || hike.source.kind === kind),
+  );
+  get("hike-count", HTMLParagraphElement).textContent = discovery
+    ? `${matches.length} of ${discovery.hikes.length} mapped features. ${discovery.skipped} unsupported or geometry-free records excluded.`
+    : "No downloaded results yet.";
+  for (const hike of matches) {
+    const card = node("li", "", "saved-card");
+    card.append(node("p", hike.source.kind.toUpperCase(), "eyebrow"), node("h2", hike.name));
+    card.append(node("p", `${hike.segments.length} regional segments / ${hike.segments.reduce((sum, segment) => sum + segment.length, 0).toLocaleString()} points. Elevation unknown.`, "data-note"));
+    if (["no", "private"].includes(hike.source.tags.access) || hike.source.tags.foot === "no") {
+      card.append(node("p", "Restricted access is tagged. This is not a recommendation to enter.", "access-warning"));
+    }
+    card.append(sourceDetails(hike.source));
+    const actions = node("div", "", "card-actions");
+    actions.append(button("Preview on map", () => {
+      previewHike = hike;
+      updateMap();
+      if (mapReady && map) {
+        const bounds = new mapboxgl.LngLatBounds();
+        hike.segments.forEach((segment) => segment.forEach((point) => bounds.extend(point)));
+        map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: reducedMotion() ? 0 : 800 });
+      } else notify("Map unavailable. You can still analyze or export this geometry.");
+    }));
+    actions.append(button("Analyze hike", () => analyzeInput(async () => hikeGpx(hike), hike.source), "button primary"));
+    actions.append(button("Export GPX", () => downloadGpx(hike.name, hikeGpx(hike))));
+    card.append(actions);
+    list.append(card);
+  }
+  if (discovery && !matches.length) list.append(node("li", "No mapped hikes match. Clear filters or retry discovery later.", "empty"));
+}
+
+get("hike-search", HTMLInputElement).oninput = renderHikes;
+get("hike-kind", HTMLSelectElement).onchange = renderHikes;
+OVERPASS_SERVERS.forEach((server) => get("hike-server", HTMLSelectElement).append(new Option(server.label, server.url)));
+
+get("cancel-hikes", HTMLButtonElement).onclick = () => {
+  discoveryRequest?.abort();
+};
+
+get("find-hikes", HTMLButtonElement).onclick = () => {
+  if (discoveryRequest) return;
+  const controller = new AbortController();
+  const endpoint = get("hike-server", HTMLSelectElement).value;
+  discoveryRequest = controller;
+  get("find-hikes", HTMLButtonElement).disabled = true;
+  get("hike-server", HTMLSelectElement).disabled = true;
+  get("cancel-hikes", HTMLButtonElement).hidden = false;
+  get("hikes-state", HTMLParagraphElement).textContent = "Searching the Garrett County region. This may take up to 35 seconds...";
+  const timeout = setTimeout(() => controller.abort(new Error("Trail search timed out. Try again later.")), 35_000);
+  void (async () => {
+    try {
+      const refreshed = await discoverHikes(controller.signal, endpoint);
+      discovery = mergeDiscovery(bundledDiscovery, refreshed);
+      renderHikes();
+      updateMap();
+      get("hikes-state", HTMLParagraphElement).textContent = `Fetched ${new Date(discovery.retrievedAt).toLocaleString()}. Saving a local copy...`;
+      await writeDiscovery(refreshed);
+      get("hikes-state", HTMLParagraphElement).textContent = `Cached on this device / retrieved ${new Date(discovery.retrievedAt).toLocaleString()}. Not live conditions.`;
+    } catch (error) {
+      if (controller.signal.aborted && controller.signal.reason instanceof DOMException && controller.signal.reason.name === "AbortError") {
+        get("hikes-state", HTMLParagraphElement).textContent = "Search cancelled. Previous results are unchanged.";
+      } else {
+        get("hikes-state", HTMLParagraphElement).textContent = "Search or caching failed. Any previous results remain available.";
+        report(controller.signal.aborted ? controller.signal.reason : error);
+      }
+    } finally {
+      clearTimeout(timeout);
+      discoveryRequest = undefined;
+      get("find-hikes", HTMLButtonElement).disabled = false;
+      get("hike-server", HTMLSelectElement).disabled = false;
+      get("cancel-hikes", HTMLButtonElement).hidden = true;
+    }
+  })();
+};
+
+renderHikes();
+get("hikes-state", HTMLParagraphElement).textContent = `${bundledDiscovery.hikes.length} bundled mapped features / snapshot ${new Date(bundledDiscovery.retrievedAt).toLocaleString()}. Available without an API search; not live conditions.`;
+perform(async () => {
+  const cached = await readDiscovery();
+  // An explicit search may finish before IndexedDB opens; do not overwrite fresh results.
+  if (cached && discovery === bundledDiscovery && !discoveryRequest) {
+    discovery = mergeDiscovery(bundledDiscovery, cached);
+    renderHikes();
+    updateMap();
+    get("hikes-state", HTMLParagraphElement).textContent = `Bundled regional hikes plus cached mapping / latest retrieval ${new Date(discovery.retrievedAt).toLocaleString()}. May be outdated; refresh to check for updates.`;
+  }
+});
 
 function updateDuration(): void {
   if (!analysis) return;
@@ -571,7 +755,12 @@ try {
   mapboxgl.accessToken = await loadMapboxToken();
   map = new mapboxgl.Map({
     container: "map", style: "mapbox://styles/mapbox/outdoors-v12",
-    center: [-79.312, 39.505], zoom: 10.2,
+    center: [-79.312, 39.505], zoom: 12,
+    maxBounds: REGION_BOUNDS,
+    minZoom: regionMinZoom(get("map", HTMLDivElement).clientWidth, get("map", HTMLDivElement).clientHeight),
+  });
+  map.on("resize", () => {
+    if (map) map.setMinZoom(regionMinZoom(map.getContainer().clientWidth, map.getContainer().clientHeight));
   });
   map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
   map.on("error", (event) => {
@@ -590,6 +779,21 @@ try {
       },
     });
     map.addSource("trail", { type: "geojson", data: routeData() });
+    map.addSource("regional-hikes", { type: "geojson", data: regionalHikeData() });
+    map.addLayer({ id: "regional-hikes", type: "line", source: "regional-hikes",
+      paint: { "line-color": "#216653", "line-width": 2, "line-opacity": 0.7 } });
+    map.on("click", "regional-hikes", (event) => {
+      const hike = discovery.hikes.find((item) => item.source.id === event.features?.[0]?.properties?.hikeId);
+      if (!hike) return;
+      switchTab("hikes");
+      get("hike-search", HTMLInputElement).value = hike.name;
+      get("hike-kind", HTMLSelectElement).value = "";
+      previewHike = hike;
+      renderHikes();
+      updateMap();
+    });
+    map.on("mouseenter", "regional-hikes", () => { if (map) map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "regional-hikes", () => { if (map) map.getCanvas().style.cursor = ""; });
     map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#d47522", "line-width": 5 } });
     map.on("click", "parks", (event) => {
       const place = places.find((item) => item.id === event.features?.[0]?.properties?.placeId);

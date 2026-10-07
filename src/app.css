@@ -77,6 +77,11 @@ input[type="range"] { width: 100%; accent-color: #216653; min-height: 36px; }
 .profile-reading, .duration { font-size: 12px; line-height: 1.7; }
 .engine-timing { font-size: 10px; color: #71816e; margin-top: 16px; }
 .saved-card { padding: 18px; }
+.source-details { font-size: 11px; line-height: 1.6; color: #657565; overflow-wrap: anywhere; }
+.source-details a, #hikes-panel a { color: #216653; }
+.access-warning { color: #852f22; font-weight: 700; }
+#hikes-state { font-size: 12px; line-height: 1.65; }
+#export-trail { margin-top: 8px; }
 .notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: #163f35; color: white; padding: 14px 20px; border-radius: 10px; box-shadow: 0 4px 24px #0003; max-width: min(560px, 92vw); font-size: 13px; line-height: 1.6; }
 .notification.error { background: #852f22; }
 .mapboxgl-popup-content { padding: 14px 30px 14px 14px; font-family: "DM Sans", system-ui, sans-serif; border-radius: 8px; }

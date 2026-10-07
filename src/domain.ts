@@ -1,4 +1,5 @@
 import geojson from "./model/geo.json";
+import type { HikeSource } from "./hikes";
 
 export interface Place {
   id: string;
@@ -31,7 +32,7 @@ export interface Analysis {
 
 export type SavedOuting =
   | { id: string; kind: "place"; name: string; savedAt: string; place: Place }
-  | { id: string; kind: "trail"; name: string; savedAt: string; analysis: Analysis };
+  | { id: string; kind: "trail"; name: string; savedAt: string; analysis: Analysis; source?: HikeSource };
 
 const categories: [string, RegExp][] = [
   ["Hiking", /hik/i],

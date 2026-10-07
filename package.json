@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:rust": "cargo test --manifest-path rust/Cargo.toml",
+    "refresh:hikes": "tsx scripts/refresh-hikes.ts",
     "dev": "concurrently \"npm run watch\" \"npm start\" --kill-others-on-fail",
     "start": "serve dist",
     "watch": "npm run build:wasm && webpack --mode development --watch"

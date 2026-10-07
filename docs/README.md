@@ -45,7 +45,75 @@ npm run test:rust
 npm run typecheck
 ```
 
-### Trail lab
+### OpenStreetMap hike discovery
+
+The map is constrained to the original project bounds: southwest
+`[-79.48696767001076, 39.202068911240104]`, northeast
+`[-79.08637004392415, 39.722221540464716]`. This is a rectangular Garrett County
+region with immediate surroundings, not an exact county administrative polygon.
+Panning, zooming out, and route previews respect these bounds.
+
+The app permanently includes `src/model/hikes.json`: a real OpenStreetMap
+snapshot retrieved October 6, 2026, containing **243 mapped features (62 hiking
+route relations and 181 named paths)**. These appear immediately in the **Hikes**
+tab and as regional map lines without an API request or preexisting browser
+cache. They are included in the built app and offline app cache. Selecting a
+map line opens matching hike results. No elevation or live access information
+is added. Per-feature source attribution and retrieval dates remain attached
+to analysis, saved outings, and GPX exports.
+
+All OSM geometry is clipped to the regional rectangle. Border-crossing edges
+are clipped at the boundary, and gaps/out-of-region excursions remain separate
+segments. Longer routes may therefore be partial: displayed distances and GPX
+exports cover only their regional sections, not necessarily the complete hike.
+
+The **Refresh regional hikes** button runs an explicit, bounded Overpass query
+for hiking/foot route relations and named paths using these same bounds.
+Refreshing requires internet access but no API key or location permission.
+It does not run automatically when panning or typing. The public endpoint is
+`https://overpass-api.de/api/interpreter`, with an explicitly selectable
+`https://overpass.kumi.systems/api/interpreter` alternate; requests are never
+silently retried against another provider. Service timeouts and rate limits are
+reported visibly. Searches can be cancelled, time out after 35 seconds, and
+reject oversized or incomplete responses rather than presenting partial success.
+
+Results are cached in IndexedDB with a retrieval timestamp for offline browsing.
+Refresh results are merged with the permanent snapshot by OSM identity, preferring
+the newer retrieved record. An empty refresh or old browser cache cannot erase
+the bundled dataset. Bundled mapping is historical and could include features
+removed from OSM since retrieval; check the source before relying on it.
+Use the refresh button to check for updated results. Cache failures are reported;
+the fetched results remain available in the current tab. Existing saved outings
+are preserved during the database upgrade.
+
+**Hiking route** means an OSM route relation; **Mapped path** means an individual
+mapped way, not necessarily a whole hike. Named paths may also appear within
+route relations; they are shown separately. Relation member ways are preserved
+as separate GPX segments and repeated members are counted once. Branches,
+alternate sections, disconnected geometry, and incomplete mapping mean that
+analysis totals are mapped segment lengths, not a guaranteed navigable route.
+Results are not curated recommendations or proof of public access. Missing
+access, surface, difficulty, and elevation information stays explicitly unknown.
+
+Preview geometry, analyze it with the existing local Rust/WASM engine, export
+GPX, or save the analyzed hike. Saved hikes retain source URL, available tags,
+retrieval date, and **OpenStreetMap contributors (ODbL)** attribution. GPX exports
+preserve segment boundaries and attribution, and omit unavailable elevations.
+GPX export is also available for imported and saved trails. Respect the
+[OpenStreetMap license and attribution requirements](https://www.openstreetmap.org/copyright)
+when redistributing data. Custom routing and elevation enrichment are not part
+of this integration.
+
+To replace the repository snapshot intentionally, run `npm run refresh:hikes`
+and then `npm run build`. The refresh script validates the response and refuses
+to replace the dataset with empty results. Public servers may throttle requests.
+For an already downloaded Overpass JSON response, run
+`npx tsx scripts/refresh-hikes.ts --input path-to-response.json`.
+Review and commit the generated snapshot to keep the new data permanently.
+This redistributed dataset is derived from OpenStreetMap under the ODbL;
+retain attribution and comply with its license when redistributing it.
+
+### GPX analysis
 
 Import a GPX file containing track segments (`trkseg`/`trkpt`) or routes
 (`rte`/`rtept`). If tracks exist, they take precedence over routes to avoid
