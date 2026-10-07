@@ -161,6 +161,7 @@ input[type="range"] { width: 100%; accent-color: #41694e; min-height: 36px; }
 :root[data-theme="dark"] .eyebrow,
 :root[data-theme="dark"] .intro,
 :root[data-theme="dark"] .place-description,
+:root[data-theme="dark"] .activity-text,
 :root[data-theme="dark"] .data-note,
 :root[data-theme="dark"] .source-details,
 :root[data-theme="dark"] .profile-reading,
@@ -200,6 +201,7 @@ input[type="range"] { width: 100%; accent-color: #41694e; min-height: 36px; }
   :root:not([data-theme="light"]):not([data-theme="dark"]) .intro,
   :root:not([data-theme="light"]):not([data-theme="dark"]) .eyebrow,
   :root:not([data-theme="light"]):not([data-theme="dark"]) .place-description,
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .activity-text,
   :root:not([data-theme="light"]):not([data-theme="dark"]) .data-note,
   :root:not([data-theme="light"]):not([data-theme="dark"]) .source-details,
   :root:not([data-theme="light"]):not([data-theme="dark"]) #hikes-state { color: #b2c0b5; }
